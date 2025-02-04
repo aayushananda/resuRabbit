@@ -1,4 +1,3 @@
-import "tailwindcss"
 function App() {
   return (
     <div>
