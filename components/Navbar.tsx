@@ -10,7 +10,7 @@ const navigation = [
 
 export default function Navbar(){
     return(
-        <div className="flex w-screen justify-evenly mt-4 items-center">
+        <div className="flex w-screen justify-evenly mt-4 items-center mb-4">
             <div className="flex gap-1 items-center">
                 <Image 
                 src="" 
