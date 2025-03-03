@@ -2,6 +2,12 @@
 
 import Image from 'next/image';
 import { FaMapMarkerAlt } from 'react-icons/fa';
+import google from "../public/images/google_logo.png"
+import apple from "../public/images/apple_logo.png"
+import intel from "../public/images/intel_logo.png"
+import microsoft from "../public/images/microsoft_logo.png"
+import flipkart from "../public/images/flipkart_logo.png"
+import yt from "../public/images/yt_logo.png"
 
 interface JobCardProps {
   title: string;
@@ -10,7 +16,7 @@ interface JobCardProps {
   company: string;
   location: string;
   applicants: number;
-  logo: string;
+  logo: any;
 }
 
 const JobCard: React.FC<JobCardProps> = ({ title, type, salary, company, location, applicants, logo }) => {
@@ -45,7 +51,7 @@ const FeaturedJobs = () => {
       company: 'Google Inc.',
       location: 'New Delhi, India',
       applicants: 10,
-      logo: '/logos/google.png',
+      logo: google,
     },
     {
       title: 'Senior UI/UX Designer',
@@ -54,7 +60,7 @@ const FeaturedJobs = () => {
       company: 'Apple',
       location: 'Boston, USA',
       applicants: 9,
-      logo: '/logos/apple.png',
+      logo: apple,
     },
     {
       title: 'Marketing Officer',
@@ -63,7 +69,7 @@ const FeaturedJobs = () => {
       company: 'Intel Corp',
       location: 'Bangalore, India',
       applicants: 30,
-      logo: '/logos/intel.png',
+      logo: intel,
     },
   ];
 
@@ -80,11 +86,11 @@ const FeaturedJobs = () => {
       <hr className="my-6 w-3/4 mx-auto" />
       <h3 className="text-lg font-semibold">Top companies hiring now</h3>
       <div className="flex justify-center gap-8 mt-4">
-        <Image src="/logos/google.png" alt="Google" width={80} height={40} />
-        <Image src="/logos/microsoft.png" alt="Microsoft" width={80} height={40} />
-        <Image src="/logos/flipkart.png" alt="Flipkart" width={80} height={40} />
-        <Image src="/logos/youtube.png" alt="YouTube" width={80} height={40} />
-        <Image src="/logos/ibm.png" alt="IBM" width={80} height={40} />
+        <Image src={google} alt="Google" width={80} height={40} />
+        <Image src={microsoft} alt="Microsoft" width={80} height={40} />
+        <Image src={flipkart} alt="Flipkart" width={80} height={40} />
+        <Image src={yt} alt="YouTube" width={80} height={40} />
+        <Image src={apple} alt="Apple" width={80} height={40} />
       </div>
     </section>
   );

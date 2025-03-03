@@ -1,4 +1,5 @@
 import Image from "next/image"
+import Logo from "../public/images/ResuLogo.png"
 
 const navigation = [
   { name: 'Home', href: '#', current: false },
@@ -13,10 +14,10 @@ export default function Navbar(){
         <div className="flex w-screen justify-evenly mt-4 items-center mb-4">
             <div className="flex gap-1 items-center">
                 <Image 
-                src="" 
-                width={20} 
-                height={20} 
-                alt=""></Image>
+                src={Logo} 
+                width={60} 
+                height={60} 
+                alt="ResuLogo"></Image>
                 <h1 className="text-3xl text-[#6300B3] font-bold">ResuRabbit</h1>
             </div>
             <div>
