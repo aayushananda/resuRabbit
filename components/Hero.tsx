@@ -9,8 +9,8 @@ export default function Hero(){
                 <p className="text-sm">Thousands Of Jobs In All The Leading Sector Are Waiting For You</p>
                 <div className="mt-6 bg-white px-2 py-3 rounded-lg flex items-center justify-between">
                     <div>
-                        <input placeholder="Job Title, KeyWord" type="text" className="W-40 px-3"></input>
-                        <input placeholder="Location" type="text" className="w-40 px-3"></input>
+                        <input placeholder="Job Title, KeyWord" type="text" className="W-40 px-3 outline-none"></input>
+                        <input placeholder="Location" type="text" className="w-40 px-3 outline-none"></input>
                     </div>
                     <button className="border-2 bg-[#6300B3] py-2 w-32 border-[#6300B3] text-white font-semibold rounded-sm">Find Job</button>
                 </div>
