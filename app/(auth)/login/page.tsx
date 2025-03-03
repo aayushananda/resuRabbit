@@ -1,19 +1,13 @@
-// app/(auth)/login/page.tsx
 "use client"
 
 import React, { useEffect, useState } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
-import Google from "../../public/images/google_logo.png"
+import Google from "../../../public/images/google_logo.png"
 import { AiFillEye, AiFillEyeInvisible } from 'react-icons/ai'
 import { signIn, useSession } from "next-auth/react"
 import Alert from '@mui/material/Alert'
 import { useRouter, useSearchParams } from 'next/navigation'
-
-interface LoginResponse {
-  token?: string;
-  error?: string;
-}
 
 const Login = () => {
   const [email, setEmail] = useState("")
@@ -26,91 +20,107 @@ const Login = () => {
   
   const router = useRouter()
   const searchParams = useSearchParams()
-//   const { data: session, status } = useSession()
-  const callbackUrl = searchParams.get('from') || '/dashboard'
+  const { data: session, status } = useSession()
+  const callbackUrl = '/help'
 
-//   useEffect(() => {
-//     if (session && status === 'authenticated') {
-//       router.push(callbackUrl)
-//     }
-//   }, [session, status, router, callbackUrl])
+  useEffect(() => {
+    if (session && status === 'authenticated') {
+      router.push(callbackUrl)
+    }
+  }, [session, status, router, callbackUrl])
 
-//   useEffect(() => {
-//     const error = searchParams.get('error')
-//     if (error) {
-//       setMessage(decodeURIComponent(error))
-//       setAlertSeverity('error')
-//       setShowAlert(true)
-//     }
-//   }, [searchParams])
+  useEffect(() => {
+    const error = searchParams.get('error')
+    if (error) {
+      setMessage(decodeURIComponent(error))
+      setAlertSeverity('error')
+      setShowAlert(true)
+    }
+  }, [searchParams])
 
-//   useEffect(() => {
-//     if (showAlert) {
-//       const timer = setTimeout(() => {
-//         setShowAlert(false)
-//       }, 3000)
-
-//       return () => clearTimeout(timer)
-//     }
-//   }, [showAlert])
+  useEffect(() => {
+    if (showAlert) {
+      const timer = setTimeout(() => {
+        setShowAlert(false)
+      }, 3000)
+      return () => clearTimeout(timer)
+    }
+  }, [showAlert])
 
   const togglePasswordVisibility = () => {
     setShowPassword(!showPassword)
   }
 
-//   const handleLogin = async (e: React.FormEvent) => {
-//     e.preventDefault()
-//     setIsLoading(true)
+  const handleLogin = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setIsLoading(true)
     
-//     try {
-//       const result = await signIn('credentials', {
-//         email,
-//         password,
-//         redirect: false,
-//         callbackUrl,
-//       })
+    try {
+      const result = await signIn('credentials', {
+        email,
+        password,
+        redirect: false,
+        callbackUrl,
+      })
 
-//       if (!result?.error) {
-//         setMessage("Login successful!")
-//         setAlertSeverity('success')
-//         setShowAlert(true)
-        
-//         setTimeout(() => {
-//           router.push(callbackUrl)
-//           router.refresh()
-//         }, 1000)
-//       } else {
-//         setMessage(result.error)
-//         setAlertSeverity('error')
-//         setShowAlert(true)
-//       }
-//     } catch (error) {
-//       setMessage("An error occurred during login")
-//       setAlertSeverity('error')
-//       setShowAlert(true)
-//     } finally {
-//       setIsLoading(false)
-//     }
-//   }
+      if (!result?.error) {
+        setMessage("Login successful!")
+        setAlertSeverity('success')
+        setShowAlert(true)
+        setTimeout(() => {
+          router.push(callbackUrl)
+        }, 1000)
+      } else {
+        setMessage(result.error)
+        setAlertSeverity('error')
+        setShowAlert(true)
+      }
+    } catch (error) {
+      console.error("Credentials login error:", error)
+      setMessage("An error occurred during login")
+      setAlertSeverity('error')
+      setShowAlert(true)
+    } finally {
+      setIsLoading(false)
+    }
+  }
 
-//   const handleGoogleSignIn = async () => {
-//     setIsLoading(true)
-//     try {
-//       await signIn("google", {
-//         callbackUrl,
-//       })
-//     } catch (error) {
-//       setMessage("An error occurred during Google sign in")
-//       setAlertSeverity('error')
-//       setShowAlert(true)
-//       setIsLoading(false)
-//     }
-//   }
+  const handleGoogleSignIn = async () => {
+    setIsLoading(true)
+    try {
+      const result = await signIn("google", {
+        callbackUrl,
+        redirect: false,
+      })
+      if (!result?.error) {
+        setMessage("Google sign-in successful!")
+        setAlertSeverity('success')
+        setShowAlert(true)
+        setTimeout(() => {
+          router.push(callbackUrl)
+        }, 1000)
+      } else {
+        setMessage(result.error || "Google sign-in failed")
+        setAlertSeverity('error')
+        setShowAlert(true)
+      }
+    } catch (error) {
+      console.error("Google sign-in error:", error)
+      setMessage("An error occurred during Google sign in")
+      setAlertSeverity('error')
+      setShowAlert(true)
+    } finally {
+      setIsLoading(false)
+    }
+  }
 
+  if (status === 'loading') {
+    return <div>Loading...</div>
+  }
 
   return (
-    <div className="relative">
-      <div className='w-full 2xl:h-[1000px] lg:h-[670px] md:h-[800px] sm:h-[900px] h-[900px] pt-5 '>
+    <div className="relative bg-slate-950">
+      <div className='w-full 2xl:h-[1000px] lg:h-[670px] md:h-[800px] sm:h-[900px] h-[900px] pt-5'>
         <div className="flex justify-center items-center">
           {showAlert && (
             <div className="fixed top-5 left-1/2 w-full transform -translate-x-1/2 z-50">
@@ -140,7 +150,7 @@ const Login = () => {
                 </h1>
               </div>
 
-              <form className='flex flex-col mt-6'>
+              <form className='flex flex-col mt-6' onSubmit={handleLogin}>
                 <div className='w-full'>
                   <h1 className='mb-1 dark:text-white/90 text-black'>Email</h1>
                   <input 
@@ -194,7 +204,7 @@ const Login = () => {
 
               <div className='w-full flex justify-center items-center'>
                 <button 
-                //   onClick={handleGoogleSignIn}
+                  onClick={handleGoogleSignIn}
                   disabled={isLoading}
                   className='w-full py-2 border border-gray-400 rounded-md flex justify-center items-center gap-2 text-black dark:text-white hover:text-white hover:bg-black dark:hover:bg-gray-900 disabled:opacity-50 disabled:cursor-not-allowed'
                 >
