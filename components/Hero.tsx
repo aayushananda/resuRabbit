@@ -1,3 +1,6 @@
+import Hero_png from "../public/images/Hero.png"
+import Image from "next/image"
+
 export default function Hero(){
     return(
         <div className="bg-[#C599E599]/40 h-[596px] w-screen flex items-center justify-center">
@@ -13,7 +16,7 @@ export default function Hero(){
                 </div>
                 <p className="text-sm mt-4">Suggestion: UI/UX Designer, Programing, Digital Marketing, Video, Animation.</p>
             </div>
-            <img src="../public/images/Hero.png" height={400} width={400}></img>
+            <Image src={Hero_png} height={400} width={400} alt="Hero Png"></Image>
         </div>
     )
 }
