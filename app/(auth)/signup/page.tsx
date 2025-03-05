@@ -3,7 +3,7 @@
 import React, { useEffect, useState } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
-import Google from "../../../public/images/google_logo.png"
+import Google from "../../../public/images/google.png"
 import { signIn } from "next-auth/react"
 import { AiFillEye, AiFillEyeInvisible } from 'react-icons/ai'
 import Alert from '@mui/material/Alert'
@@ -19,7 +19,7 @@ const SignUp = () => {
   const [alertSeverity, setAlertSeverity] = useState<'success' | 'error' | 'info'>('info')
   const [isLoading, setIsLoading] = useState(false)
   const router = useRouter()
-  const callbackUrl = '/help'
+  const callbackUrl = '/jobs'
 
   const togglePasswordVisibility = () => {
     setShowPassword(!showPassword)
@@ -78,7 +78,7 @@ const SignUp = () => {
   }, [showAlert])
 
   return (
-    <div className='relative bg-white'>
+    <div className='relative bg-gray-700'>
       <div className='w-full 2xl:h-[1000px] lg:h-[700px] md:h-[800px] sm:h-[700px] h-[700px] pt-5 bg-gray-20'>
         <div className="flex justify-center items-center">
           {showAlert && (

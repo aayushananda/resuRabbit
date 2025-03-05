@@ -3,7 +3,7 @@
 import React, { useEffect, useState } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
-import Google from "../../../public/images/google_logo.png"
+import Google from "../../../public/images/google.png"
 import { AiFillEye, AiFillEyeInvisible } from 'react-icons/ai'
 import { signIn, useSession } from "next-auth/react"
 import Alert from '@mui/material/Alert'
@@ -21,7 +21,7 @@ const Login = () => {
   const router = useRouter()
   const searchParams = useSearchParams()
   const { data: session, status } = useSession()
-  const callbackUrl = '/help'
+  const callbackUrl = '/jobs'
 
   useEffect(() => {
     if (session && status === 'authenticated') {
@@ -119,7 +119,7 @@ const Login = () => {
   }
 
   return (
-    <div className="relative bg-white">
+    <div className="relative bg-gray-700">
       <div className='w-full 2xl:h-[1000px] lg:h-[670px] md:h-[800px] sm:h-[900px] h-[900px] pt-5'>
         <div className="flex justify-center items-center">
           {showAlert && (
