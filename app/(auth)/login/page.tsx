@@ -119,7 +119,7 @@ const Login = () => {
   }
 
   return (
-    <div className="relative bg-slate-950">
+    <div className="relative bg-white">
       <div className='w-full 2xl:h-[1000px] lg:h-[670px] md:h-[800px] sm:h-[900px] h-[900px] pt-5'>
         <div className="flex justify-center items-center">
           {showAlert && (
