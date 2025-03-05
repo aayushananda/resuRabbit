@@ -36,8 +36,8 @@ const JobCard: React.FC<JobCardProps> = ({ title, type, salary, company, locatio
       </div>
       <p className="text-xs text-gray-500 mt-2">{applicants}+ applicants</p>
       <div className="flex justify-between mt-4">
-        <button className="border border-purple-600 text-purple-600 px-4 py-2 rounded">View details</button>
-        <button className="bg-purple-600 text-white px-4 py-2 rounded">Apply now</button>
+        <button className="border border-[#6300B3] text-[#6300B3] px-4 py-2 rounded">View details</button>
+        <button className="bg-[#6300B3] text-white px-4 py-2 rounded">Apply now</button>
       </div>
     </div>
   );
@@ -83,7 +83,7 @@ const FeaturedJobs = () => {
           <JobCard key={index} {...job} />
         ))}
       </div>
-      <a href="#" className="text-purple-600 font-semibold block mt-4">View all</a>
+      <a href="#" className="text-[#6300B3] font-semibold block mt-4">View all</a>
       <hr className="my-6 w-3/4 mx-auto" />
       <h3 className="text-lg font-semibold">Top companies hiring now</h3>
       <div className="flex justify-center gap-8 p-5 items-center">
