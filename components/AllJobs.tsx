@@ -1,10 +1,16 @@
 import Image from "next/image";
 import google from "../public/images/google.png"
+import apple from "../public/images/apple_logo.png"
+import Resu from "../public/images/ResuLogo.png"
+
 import RoomOutlinedIcon from '@mui/icons-material/RoomOutlined';
 
 const jobs = [
-  { title: "Technical Support Specialist", type: "Part-Time", salary: "20,000 - 25,000 INR", company: "Google Inc.", location: "New Delhi, India" },
+  { title: "Technical Support Specialist", type: "Part-Time", salary: "20,000 - 25,000 INR", company: "Google Inc.", location: "New Delhi, India", image: google },
+  { title: "Senior UI/UX Designer", type: "Full-Time", salary: "$120,000 - $150,000", company: "Apple", location: "Boston, USA", image: apple },
+    { title: "Technical Support Specialist", type: "Part-Time", salary: "20,000 - 25,000 INR", company: "Google Inc.", location: "New Delhi, India" },
   { title: "Senior UI/UX Designer", type: "Full-Time", salary: "$120,000 - $150,000", company: "Apple", location: "Boston, USA" },
+    { title: "Technical Support Specialist", type: "Part-Time", salary: "20,000 - 25,000 INR", company: "Google Inc.", location: "New Delhi, India", image: google },
 ];
 
 export default function AllJobs(){
@@ -20,9 +26,9 @@ export default function AllJobs(){
               {job.type}</p>
               <p> Salary: {job.salary}</p>
             </div>
-            <div className="flex gap-1">
+            <div className="flex gap-1 py-4">
               <div className="flex items-center">
-                <Image src={google} width={40} height={20} alt="Google"></Image>
+                <Image src={job.image ?? Resu} width={40} height={20} alt="Company Logo"></Image>
               </div>
               <div>
                 <p>{job.company}</p>
