@@ -3,7 +3,7 @@ import React from 'react'
 
 const page = () => {
   return (
-    <div className='min-h-screen bg-gray-950 flex items-center justify-center p-4'>
+    <div className='min-h-screen bg-white flex items-center justify-center p-4'>
       <ResumeBuilder />
     </div>
   )
