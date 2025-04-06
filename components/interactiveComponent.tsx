@@ -25,9 +25,9 @@ function Scene() {
   return (
     <group>
         <OrbitControls/>
-        <Environment preset="sunset"/>
+        <Environment preset="forest" background/>
       <mesh>
-        <meshStandardMaterial color="#6300B3" />
+        <meshStandardMaterial color="#EE66A6" />
         <boxGeometry args={[1, 1, 1]} />
       </mesh>
     </group>
