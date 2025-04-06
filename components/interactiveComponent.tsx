@@ -25,7 +25,7 @@ function Scene() {
   return (
     <group>
         <OrbitControls/>
-        <Environment preset="forest" background/>
+        <Environment files={"/hdr/warehouse-256.hdr"}/>
       <mesh>
         <meshStandardMaterial color="#EE66A6" />
         <boxGeometry args={[1, 1, 1]} />
