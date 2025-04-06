@@ -2,6 +2,7 @@
 
 import React, { Suspense } from "react";
 import { Canvas } from "@react-three/fiber";
+import { Environment, OrbitControls } from "@react-three/drei";
 
 type Props = {};
 
@@ -23,8 +24,10 @@ export default function interactiveComponent({}: Props) {
 function Scene() {
   return (
     <group>
+        <OrbitControls/>
+        <Environment preset="sunset"/>
       <mesh>
-        <meshBasicMaterial color="#6300B3" />
+        <meshStandardMaterial color="#6300B3" />
         <boxGeometry args={[1, 1, 1]} />
       </mesh>
     </group>
