@@ -12,6 +12,11 @@ const inter = Inter({
 export const metadata: Metadata = {
   title: "ResuRabbit",
   description: "Resume Management App",
+  icons: {
+    icon: "/images/ResuLogo.png",
+    apple: "/images/ResuLogo.png",
+    shortcut: "/images/ResuLogo.png",
+  },
 };
 
 export default function RootLayout({

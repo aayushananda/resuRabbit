@@ -1,59 +1,59 @@
 import Link from "next/link";
-import Hero_png from "../public/images/Hero.png";
-import Image from "next/image";
 import InteractiveComponent from "./interactiveComponent";
+import { Button } from "./Button";
 
 export default function Hero() {
   return (
     <div className="relative">
       <div className="bg-[#C599E599]/40 h-[596px] flex flex-col items-center justify-center">
-        <div className="w-[692px] flex items-center justify-center">
-          <div className="w-[692px] flex-col">
-            <h1 className="text-3xl font-semibold mb-1">
+        <div className="max-w-4xl w-full px-4 md:px-0 flex flex-col items-center">
+          <div className="flex-col text-center">
+            <h1 className="text-2xl md:text-3xl lg:text-4xl font-semibold mb-3">
               Find a Job That Aligns With Your Interest and Skills
             </h1>
-            <p className="text-sm">
+            <p className="text-sm md:text-base mb-6">
               Thousands Of Jobs In All The Leading Sector Are Waiting For You
             </p>
-            <div className="mt-6 bg-white px-2 py-3 rounded-lg flex items-center justify-between">
-              <div className="flex gap-2">
+            <div className="mt-6 bg-white px-4 py-4 rounded-lg flex flex-col md:flex-row items-center justify-between w-full gap-3">
+              <div className="flex flex-col md:flex-row w-full gap-2">
                 <input
                   placeholder="Job Title, KeyWord"
                   type="text"
-                  className="w-40 px-3 outline-none"
+                  className="w-full md:w-auto px-3 py-2 border rounded-md outline-none"
                 ></input>
                 <input
                   placeholder="Location"
                   type="text"
-                  className="w-40 px-3 outline-none"
+                  className="w-full md:w-auto px-3 py-2 border rounded-md outline-none"
                 ></input>
               </div>
-              <button className="border-2 bg-[#6300B3] py-2 w-32 border-[#6300B3] text-white font-semibold rounded-sm">
-                Find Job
-              </button>
+              <Link href="/jobs">
+                <Button size="sm" color="purple" iconName="search">
+                  Find Job
+                </Button>
+              </Link>
             </div>
             <p className="text-sm mt-4">
-              Suggestion: UI/UX Designer, Programing, Digital Marketing, Video,
+              Suggestion: UI/UX Designer, Programming, Digital Marketing, Video,
               Animation.
             </p>
-            <div className="mt-6 flex gap-6 pt-4">
-              <Link href="/resume-builder">
-                <button className="border-2 bg-[#6300B3] py-2 w-36 border-[#6300B3] text-white font-semibold rounded-sm">
+            <div className="mt-6 flex flex-col md:flex-row gap-4 pt-4 justify-center">
+              <Link href="/resume-builder" className="w-full md:w-auto">
+                <Button color="lime" iconName="resume">
                   Resume Builder
-                </button>
+                </Button>
               </Link>
-              <Link href="/resume-scorer">
-                <button className="border-2 bg-[#6300B3] py-2 w-36 border-[#6300B3] text-white font-semibold rounded-sm">
-                  Resume Score
-                </button>
+              <Link href="/resume-scorer" className="w-full md:w-auto">
+                <Button iconName="score">Resume Score</Button>
               </Link>
             </div>
           </div>
-          <Image src={Hero_png} height={400} width={400} alt="Hero Png"></Image>
         </div>
       </div>
-      <div className="absolute inset-0 ">
-        <InteractiveComponent />
+      <div className="absolute inset-0 pt-20 pl-0 md:pl-52">
+        <div className="w-full h-full">
+          <InteractiveComponent position={[2.4, -0.35, 0]} scale={0.25} />
+        </div>
       </div>
     </div>
   );
