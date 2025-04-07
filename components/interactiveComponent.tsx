@@ -30,7 +30,7 @@ export default function interactiveComponent({
       )}
       <Canvas
         className="h-full w-full"
-        camera={{ position: [1, 0.5, 4], fov: 45 }}
+        camera={{ position: [1, 0.5, 3.5], fov: 40 }}
         onError={() => setError("Failed to initialize 3D scene")}
       >
         <Suspense>
