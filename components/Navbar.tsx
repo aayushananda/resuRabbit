@@ -26,8 +26,7 @@ export default function Navbar() {
               className="text-2xl font-bold flex items-center gap-1"
             >
               <Image src={Logo} width={50} height={50} alt="ResuLogo" />
-              <p className="text-[#6300B3]">resu</p>
-              <p>Rabbit</p>
+              <p className="text-[#6300B3]">resuRabbit</p>
             </Link>
             <div className="hidden md:block">
               <div className="flex items-center space-x-6 font-semibold text-[#10101099]">

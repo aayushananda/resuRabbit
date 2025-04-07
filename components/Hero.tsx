@@ -27,7 +27,7 @@ export default function Hero() {
                 ></input>
               </div>
               <Link href="/jobs">
-                <Button size="sm" color="purple" iconName="search">
+                <Button size="sm" className="w-max" color="purple" iconName="search">
                   Find Job
                 </Button>
               </Link>
@@ -48,8 +48,8 @@ export default function Hero() {
             </div>
           </div>
         </div>
-        <div className="w-full h-full absolute">
-          <InteractiveComponent position={[2.4, -0.35, 0]} scale={0.18}/>
+        <div className="w-full h-[596px] absolute">
+          <InteractiveComponent position={[2.4, -0.35, 0]} scale={0.16}/>
         </div>
       </div>
   );
