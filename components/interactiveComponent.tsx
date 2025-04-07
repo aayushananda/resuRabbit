@@ -30,7 +30,7 @@ export default function interactiveComponent({
       )}
       <Canvas
         className="h-full w-full"
-        camera={{ position: [4, 1.5, 4], fov: 35 }}
+        camera={{ position: [1, 0.5, 4], fov: 45 }}
         onError={() => setError("Failed to initialize 3D scene")}
       >
         <Suspense>
@@ -51,7 +51,7 @@ function Scene({
   return (
     <group position={position}>
       <OrbitControls enablePan={false} enableZoom={false} />
-      <Environment files={"/hdr/warehouse-256.hdr"} />
+      <Environment files={"/hdr/warehouse-256.hdr"}/>
       <Rabbit
         scale={scale}
         position={[0, -0.2, 0]}

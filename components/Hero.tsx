@@ -4,9 +4,8 @@ import { Button } from "./Button";
 
 export default function Hero() {
   return (
-    <div className="relative">
-      <div className="bg-[#C599E599]/40 h-[596px] flex flex-col items-center justify-center">
-        <div className="max-w-4xl w-full px-4 md:px-0 flex flex-col items-center">
+      <div className="bg-[#C599E599]/40 h-[596px] flex items-center justify-center">
+        <div className="max-w-2xl w-full px-4 md:px-0 flex flex-col items-center z-10">
           <div className="flex-col text-center">
             <h1 className="text-2xl md:text-3xl lg:text-4xl font-semibold mb-3">
               Find a Job That Aligns With Your Interest and Skills
@@ -49,12 +48,9 @@ export default function Hero() {
             </div>
           </div>
         </div>
-      </div>
-      <div className="absolute inset-0 pt-20 pl-0 md:pl-52">
-        <div className="w-full h-full">
-          <InteractiveComponent position={[2.4, -0.35, 0]} scale={0.25} />
+        <div className="w-full h-full absolute">
+          <InteractiveComponent position={[2.4, -0.35, 0]} scale={0.18}/>
         </div>
       </div>
-    </div>
   );
 }
