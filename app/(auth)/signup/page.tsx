@@ -172,8 +172,10 @@ const SignUp = () => {
                 </button>
               </form>
 
-              <div className="flex justify-center items-center my-3 text-black w-full">
-                or signup with
+              <div className="flex items-center my-6">
+                <div className="flex-1 border-t border-gray-400"></div>
+                <div className="px-4 text-black">or signup with</div>
+                <div className="flex-1 border-t border-gray-400"></div>
               </div>
 
               <div className="w-full flex justify-center items-center">
