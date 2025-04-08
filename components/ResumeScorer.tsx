@@ -98,17 +98,17 @@ const ResumeScorer = () => {
   };
 
   return (
-    <div className="w-3/4 p-6 bg-gray-900 rounded-xl shadow-xl text-gray-100">
-      <h2 className="text-2xl font-bold text-white mb-6">ATS Resume Scorer</h2>
+    <div className="w-3/4 p-6 rounded-xl shadow-2xl text-gray-100 shadow-[#6300B3]/50">
+      <h2 className="text-3xl font-bold text-black mb-6">ATS Resume Scorer</h2>
 
       <form onSubmit={handleSubmit} className="space-y-6">
         <div className="space-y-4">
-          <label className="block text-sm font-medium text-gray-300">
+          <label className="block text-sm font-medium text-black/80">
             Upload PDF or Paste Resume
           </label>
 
           <div className="flex items-center justify-center w-full">
-            <label className="flex flex-col items-center justify-center w-full h-32 border-2 border-gray-700 border-dashed rounded-lg cursor-pointer bg-gray-800 hover:bg-gray-700 transition-all">
+            <label className="flex flex-col items-center justify-center w-full h-32 border-2 border-gray-700 border-dashed rounded-lg cursor-pointer hover:bg-gray-100 transition-all">
               <div className="flex flex-col items-center justify-center pt-5 pb-6">
                 <svg
                   className="w-8 h-8 mb-3 text-gray-400"
@@ -145,7 +145,7 @@ const ResumeScorer = () => {
           <textarea
             value={resumeText}
             onChange={(e) => setResumeText(e.target.value)}
-            className="w-full h-64 p-3 bg-gray-800 border border-gray-700 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 resize-none transition-all text-gray-100 placeholder-gray-500"
+            className="w-full h-64 p-3 border border-gray-700 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 resize-none transition-all text-black placeholder-gray-500"
             placeholder="Or paste your resume text here..."
           />
           <div className="mb-4">
@@ -158,7 +158,7 @@ const ResumeScorer = () => {
         <button
           type="submit"
           disabled={isLoading || !resumeText.trim()}
-          className="w-full text-lg bg-purple-700 hover:bg-purple-800 py-1.5 px-4 text-white rounded-sm font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
+          className="w-full text-lg bg-[#6300B3] hover:bg-purple-800 py-1.5 px-4 text-white rounded-sm font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
         >
           {isLoading ? (
             <>
