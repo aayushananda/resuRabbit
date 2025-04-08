@@ -17,7 +17,7 @@ const navigation = [
 export default function Navbar() {
   const pathname = usePathname();
   return (
-    <nav className="border-b-2 bg-white border-b-[#10101017]">
+    <nav className="bg-white" >
       <div className="py-5 px-8 mx-auto max-w-7xl">
         <div className="flex items-center justify-between space-x-1">
           <div className="flex items-center space-x-8">
