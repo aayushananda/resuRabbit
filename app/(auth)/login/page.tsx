@@ -9,6 +9,7 @@ import { signIn, useSession } from "next-auth/react";
 import Alert from "@mui/material/Alert";
 import { useRouter, useSearchParams } from "next/navigation";
 import { toast } from "react-hot-toast";
+import Login_png from "../../../public/images/Login.png"
 
 const Login = () => {
   const [email, setEmail] = useState("");
@@ -122,7 +123,7 @@ const Login = () => {
   }
 
   return (
-    <div className="relative bg-gray-700">
+    <div className="relative">
       <div className="w-full 2xl:h-[1000px] lg:h-[670px] md:h-[800px] sm:h-[900px] h-[900px] pt-5">
         <div className="flex justify-center items-center">
           {showAlert && (
@@ -138,26 +139,17 @@ const Login = () => {
           )}
         </div>
 
-        <div className="flex justify-center items-center my-12 z-50 relative">
-          <div className="flex justify-between md:w-1/2 lg:w-2/5 text-white px-4">
-            <div className="w-full p-5 border border-gray-400 rounded-xl bg-white/60 dark:bg-black/90 shadow-lg">
-              <div>
-                <h1 className="text-5xl font-semibold dark:text-white text-black">
-                  Login
-                </h1>
-                <h1 className="my-3 dark:text-white text-black">
-                  Don&apos;t have an account?
-                  <Link href="/signup">
-                    <span className="dark:text-purple-300 text-purple-800 hover:text-purple-950 underline dark:hover:text-purple-400 cursor-pointer ml-1">
-                      Sign Up
-                    </span>
-                  </Link>
-                </h1>
-              </div>
-
+        <div className="flex justify-center items-center">
+          <div className="flex-col w-3/4">
+            <h1 className="text-5xl font-semibold text-black mb-2">
+              Login
+            </h1>
+            <p className="text-black/70 mb-2">Welcome back! Select the below login methods.</p>
+            <div className="p-5 rounded-xl shadow-2xl w-full flex justify-evenly items-center gap-8">
+              <div className="w-3/5">
               <form className="flex flex-col mt-6" onSubmit={handleLogin}>
                 <div className="w-full">
-                  <h1 className="mb-1 dark:text-white/90 text-black">Email</h1>
+                  <h1 className="mb-1 text-black font-semibold">Enter Email</h1>
                   <input
                     type="email"
                     value={email}
@@ -165,13 +157,13 @@ const Login = () => {
                     placeholder="Email"
                     required
                     disabled={isLoading}
-                    className="dark:bg-slate-800 border-[1px] dark:text-white text-black border-black rounded-sm py-3 px-2 w-full focus:outline-none disabled:opacity-50"
+                    className="border-[1px] text-black border-black/30 rounded-md py-3 px-2 w-full focus:outline-none"
                   />
                 </div>
 
                 <div className="w-full my-4 relative">
-                  <h1 className="dark:text-white/90 text-black mb-1">
-                    Password
+                  <h1 className="text-black mb-1 font-semibold">
+                    Enter Password
                   </h1>
                   <input
                     type={showPassword ? "text" : "password"}
@@ -180,7 +172,7 @@ const Login = () => {
                     placeholder="********"
                     required
                     disabled={isLoading}
-                    className="dark:bg-slate-800 dark:text-white text-black border-[1px] border-black rounded-sm py-3 px-2 w-full focus:outline-none disabled:opacity-50"
+                    className="text-black border-[1px] border-black/30 rounded-md py-3 px-2 w-full focus:outline-none"
                   />
                   <button
                     type="button"
@@ -204,7 +196,7 @@ const Login = () => {
                 <button
                   type="submit"
                   disabled={isLoading}
-                  className="w-full text-lg dark:bg-purple-900 py-1.5 bg-purple-700 hover:bg-purple-800 text-white rounded-sm dark:hover:bg-purple-950 font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="w-full text-lg py-1.5 bg-[#6300B3] hover:bg-purple-800 text-white rounded-md font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {isLoading ? "Logging in..." : "Login"}
                 </button>
@@ -212,7 +204,7 @@ const Login = () => {
 
               <div className="flex items-center my-6">
                 <div className="flex-1 border-t border-gray-400"></div>
-                <div className="px-4 text-black dark:text-white/90">OR</div>
+                <div className="px-4 text-black">or login with</div>
                 <div className="flex-1 border-t border-gray-400"></div>
               </div>
 
@@ -220,7 +212,7 @@ const Login = () => {
                 <button
                   onClick={handleGoogleSignIn}
                   disabled={isLoading}
-                  className="w-full py-2 border border-gray-400 rounded-md flex justify-center items-center gap-2 text-black dark:text-white hover:text-white hover:bg-black dark:hover:bg-gray-900 disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="w-full py-2 border border-gray-400 rounded-md flex justify-center items-center gap-2 text-black hover:text-white hover:bg-black disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   <Image
                     src={Google}
@@ -231,6 +223,20 @@ const Login = () => {
                   />
                   Sign in with Google
                 </button>
+              </div>
+                <div>
+                <h1 className="my-3 text-black">
+                  Don&apos;t have an account?
+                  <Link href="/signup">
+                    <span className="text-purple-800 hover:text-purple-950 underline cursor-pointer ml-1">
+                      Sign Up
+                    </span>
+                  </Link>
+                </h1>
+              </div>
+              </div>
+              <div>
+                <Image src={Login_png} width={400} height={200} alt="Image"></Image>
               </div>
             </div>
           </div>
