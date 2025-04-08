@@ -95,9 +95,9 @@ const ResumeBuilder = () => {
   };
 
   return (
-    <div className="max-w-4xl mx-auto p-6 bg-gray-900 rounded-lg shadow-lg">
+    <div className="max-w-4xl mx-auto p-6 bg-white rounded-lg shadow-2xl shadow-[#6300B3]/50">
       <div className="mb-6">
-        <h2 className="text-2xl font-bold text-white mb-4">Resume Builder</h2>
+        <h2 className="text-3xl font-bold text-black mb-4">Resume Builder</h2>
         <form onSubmit={generateResume} className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
@@ -107,7 +107,7 @@ const ResumeBuilder = () => {
                 placeholder="Full Name"
                 value={formData.fullName}
                 onChange={handleChange}
-                className="w-full p-2 bg-gray-800 text-white border border-gray-700 rounded-md focus:outline-none focus:border-green-400"
+                className="w-full p-2 text-black border border-gray-700 rounded-md focus:outline-none focus:border-green-400"
               />
             </div>
             <div>
@@ -117,7 +117,7 @@ const ResumeBuilder = () => {
                 placeholder="Email"
                 value={formData.email}
                 onChange={handleChange}
-                className="w-full p-2 bg-gray-800 text-white border border-gray-700 rounded-md focus:outline-none focus:border-green-400"
+                className="w-full p-2 text-black border border-gray-700 rounded-md focus:outline-none focus:border-green-400"
               />
             </div>
             <div>
@@ -127,7 +127,7 @@ const ResumeBuilder = () => {
                 placeholder="Phone Number"
                 value={formData.phone}
                 onChange={handleChange}
-                className="w-full p-2 bg-gray-800 text-white border border-gray-700 rounded-md focus:outline-none focus:border-green-400"
+                className="w-full p-2 text-black border border-gray-700 rounded-md focus:outline-none focus:border-green-400"
               />
             </div>
           </div>
@@ -136,21 +136,21 @@ const ResumeBuilder = () => {
             placeholder="Professional Summary"
             value={formData.summary}
             onChange={handleChange}
-            className="w-full p-2 bg-gray-800 text-white border border-gray-700 rounded-md focus:outline-none focus:border-green-400 h-24"
+            className="w-full p-2 text-black border border-gray-700 rounded-md focus:outline-none focus:border-green-400 h-24"
           />
           <textarea
             name="experience"
             placeholder="Work Experience (Company - Role - Duration - Responsibilities)"
             value={formData.experience}
             onChange={handleChange}
-            className="w-full p-2 bg-gray-800 text-white border border-gray-700 rounded-md focus:outline-none focus:border-green-400 h-32"
+            className="w-full p-2 text-black border border-gray-700 rounded-md focus:outline-none focus:border-green-400 h-32"
           />
           <textarea
             name="education"
             placeholder="Education (Degree - Institution - Year)"
             value={formData.education}
             onChange={handleChange}
-            className="w-full p-2 bg-gray-800 text-white border border-gray-700 rounded-md focus:outline-none focus:border-green-400 h-24"
+            className="w-full p-2 text-black border border-gray-700 rounded-md focus:outline-none focus:border-green-400 h-24"
           />
           <input
             type="text"
@@ -158,7 +158,7 @@ const ResumeBuilder = () => {
             placeholder="Skills (comma-separated)"
             value={formData.skills}
             onChange={handleChange}
-            className="w-full p-2 bg-gray-800 text-white border border-gray-700 rounded-md focus:outline-none focus:border-green-400"
+            className="w-full p-2 text-black border border-gray-700 rounded-md focus:outline-none focus:border-green-400"
           />
           <button
             type="submit"
