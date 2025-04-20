@@ -757,7 +757,7 @@ const LaTeXEditor = () => {
               size="sm"
               onClick={handleCollaboration}
               icon={<FaShare />}
-              className="shadow-sm hover:shadow transition-all"
+              className="shadow-sm hover:shadow transition-all mx-0"
             >
               {isCollaborating ? "Leave Room" : "Collaborate"}
             </Button>
@@ -768,7 +768,7 @@ const LaTeXEditor = () => {
                 size="sm"
                 onClick={joinRoom}
                 icon={<FaUsers />}
-                className="shadow-sm hover:shadow transition-all"
+                className="shadow-sm hover:shadow transition-all mx-0"
               >
                 Join Room
               </Button>
@@ -887,7 +887,7 @@ const LaTeXEditor = () => {
                       onClick={compileLatex}
                       disabled={isCompiling}
                       iconName="view"
-                      className={isCompiling ? "opacity-70 cursor-not-allowed" : ""}
+                      className={`mx-0 ${isCompiling ? "opacity-70 cursor-not-allowed" : ""}`}
                     >
                       {isCompiling ? "Compiling..." : "Compile"}
                     </Button>
@@ -897,7 +897,7 @@ const LaTeXEditor = () => {
                       onClick={downloadPdf}
                       disabled={isCompiling}
                       icon={<FaDownload />}
-                      className={isCompiling ? "opacity-70 cursor-not-allowed" : ""}
+                      className={`mx-0 ${isCompiling ? "opacity-70 cursor-not-allowed" : ""}`}
                     >
                       {isCompiling ? "..." : "Download"}
                     </Button>
