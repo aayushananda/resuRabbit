@@ -1,12 +1,9 @@
-import ResumeBuilder from '@/components/ResumeBuilder'
-import React from 'react'
+import LaTeXEditor from '@/components/LaTeXEditor';
 
-const page = () => {
+export default function EditorPage() {
   return (
-    <div className='min-h-screen bg-white flex items-center justify-center p-4'>
-      <ResumeBuilder />
+    <div className="p-6">
+      <LaTeXEditor />
     </div>
-  )
+  );
 }
-
-export default page

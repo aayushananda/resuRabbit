@@ -10,6 +10,8 @@
     "postinstall": "cp node_modules/pdfjs-dist/build/pdf.worker.min.mjs public/pdf.worker.min.mjs"
   },
   "dependencies": {
+    "@codemirror/lang-markdown": "^6.3.2",
+    "@codemirror/legacy-modes": "^6.5.0",
     "@emotion/react": "^11.11.3",
     "@emotion/styled": "^11.11.0",
     "@mui/icons-material": "^5.15.10",
@@ -21,28 +23,40 @@
     "@supabase/supabase-js": "^2.39.3",
     "axios": "^1.8.4",
     "bcrypt": "^5.1.1",
+    "bcryptjs": "^3.0.2",
+    "body-parser": "^2.2.0",
     "cheerio": "^1.0.0",
     "clsx": "^2.1.1",
+    "codemirror": "^6.0.1",
+    "cors": "^2.8.5",
+    "express": "^5.1.0",
     "groq-sdk": "^0.19.0",
+    "jsonwebtoken": "^9.0.2",
     "jspdf": "^3.0.1",
+    "latex.js": "^0.12.6",
     "next": "^14.1.0",
     "next-auth": "^4.24.5",
     "pdf-parse": "^1.1.1",
     "pdfjs-dist": "^4.0.379",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
-    "react-icons": "^5.5.0"
+    "react-icons": "^5.5.0",
+    "sharp": "^0.34.1"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3.0.0",
-    "@types/node": "^20.11.17",
+    "@types/codemirror": "^5.60.15",
+    "@types/cors": "^2.8.17",
+    "@types/express": "^5.0.1",
+    "@types/node": "^20.17.30",
     "@types/react": "^18.2.55",
     "@types/react-dom": "^18.2.19",
+    "@types/uuid": "^10.0.0",
     "eslint": "^8.56.0",
     "eslint-config-next": "14.1.0",
     "postcss": "^8.4.35",
     "prisma": "^5.9.1",
     "tailwindcss": "^3.4.1",
-    "typescript": "^5.3.3"
+    "typescript": "^5.8.3"
   }
 }
