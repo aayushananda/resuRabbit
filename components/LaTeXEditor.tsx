@@ -1,9 +1,9 @@
 "use client";
-import React, { useState, useEffect, useRef } from "react";
-import { Controlled as CodeMirror } from "react-codemirror2";
-import "codemirror/lib/codemirror.css";
-import "codemirror/theme/material.css";
-import "codemirror/mode/stex/stex";
+import React, { useState, useEffect, useRef, useCallback } from "react";
+import CodeMirror from '@uiw/react-codemirror';
+import { StreamLanguage } from '@codemirror/language';
+import { stex } from '@codemirror/legacy-modes/mode/stex';
+import { materialDark } from '@uiw/codemirror-theme-material';
 import ResumeTemplates from "./ResumeTemplates";
 import { Button } from "./Button";
 import {
@@ -19,7 +19,8 @@ import {
 } from "react-icons/fa";
 import { IoMdDocument } from "react-icons/io";
 import { jsPDF } from "jspdf";
-import { io, Socket } from "socket.io-client";
+import io from "socket.io-client";
+import type { Socket } from "socket.io-client";
 import { v4 as uuidv4 } from "uuid";
 
 // Ensure API URL ends with a trailing slash
@@ -218,7 +219,6 @@ const LaTeXEditor = () => {
     \\end{document}`;
 
   const [code, setCode] = useState(resumeTemplate);
-  const [editorView, setEditorView] = useState<any | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [isCompiling, setIsCompiling] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -236,8 +236,8 @@ const LaTeXEditor = () => {
   
   // Socket reference
   const socketRef = useRef<Socket | null>(null);
-
   const editorRef = useRef<HTMLDivElement>(null);
+  const cmRef = useRef<any>(null);
 
   // Define LaTeX sections for the dashboard
   const latexSections: LatexSection[] = [
@@ -375,7 +375,7 @@ const LaTeXEditor = () => {
   // Function to navigate to section in the editor
   const navigateToSection = (sectionId: string) => {
     const section = latexSections.find((s) => s.id === sectionId);
-    if (!section) return;
+    if (!section || !cmRef.current) return;
 
     const match = code.match(section.regex);
 
@@ -384,18 +384,21 @@ const LaTeXEditor = () => {
       if (startIndex >= 0) {
         const endIndex = startIndex + match[0].length;
         
-        // Find the CodeMirror instance and select the text
-        if (editorRef.current) {
-          const cmElement = editorRef.current.querySelector('.CodeMirror');
-          if (cmElement && 'CodeMirror' in cmElement) {
-            const cm = (cmElement as any).CodeMirror;
-            cm.focus();
-            cm.setSelection(
-              cm.posFromIndex(startIndex),
-              cm.posFromIndex(endIndex)
-            );
-            cm.scrollIntoView({ from: cm.posFromIndex(startIndex) }, 200);
-          }
+        // Use the CodeMirror instance directly from the ref
+        if (cmRef.current) {
+          // Get line and character positions for selection
+          const doc = cmRef.current.view.state.doc;
+          const startPos = doc.lineAt(startIndex);
+          const endPos = doc.lineAt(endIndex);
+          
+          // Set the selection in the editor
+          cmRef.current.view.dispatch({
+            selection: {
+              anchor: startIndex,
+              head: endIndex
+            },
+            scrollIntoView: true
+          });
         }
         
         setActiveSectionId(sectionId);
@@ -408,48 +411,103 @@ const LaTeXEditor = () => {
     try {
       const doc = new jsPDF();
 
-      // Simple conversion of LaTeX to PDF (very basic)
+      // Enhanced LaTeX to PDF conversion
       const lines = code
         .split("\n")
         .filter(
           (line) =>
-            !line.startsWith("\\") &&
+            !line.startsWith("\\documentclass") &&
+            !line.startsWith("\\usepackage") &&
+            !line.startsWith("\\pagestyle") &&
+            !line.startsWith("\\fancyhf") &&
+            !line.startsWith("\\fancyfoot") &&
+            !line.startsWith("\\renewcommand") &&
+            !line.startsWith("\\addtolength") &&
+            !line.startsWith("\\setlength") &&
+            !line.startsWith("\\newcommand") &&
+            !line.startsWith("\\titleformat") &&
             !line.startsWith("%") &&
             line.trim() !== ""
         )
-        .map((line) =>
-          line
-            .replace(/\\textbf{([^}]*)}/g, "$1")
-            .replace(/\\textit{([^}]*)}/g, "$1")
-            .replace(/\\href{[^}]*}{([^}]*)}/g, "$1")
-            .replace(/\\LARGE/g, "")
+        .map((line) => {
+          // More comprehensive LaTeX replacement patterns
+          return line
+            .replace(/\\textbf{([^}]*)}/g, "$1") // Bold text
+            .replace(/\\textit{([^}]*)}/g, "$1") // Italic text
+            .replace(/\\href{[^}]*}{([^}]*)}/g, "$1") // Links
+            .replace(/\\LARGE/g, "") // Font size
+            .replace(/\\large/g, "")
             .replace(/\\small/g, "")
-            .replace(/\$\\vert\$/g, "|")
-            .replace(/\\item/g, "- ")
-            .replace(/\\begin{.*}/g, "")
-            .replace(/\\end{.*}/g, "")
-            .replace(/{/g, "")
+            .replace(/\$\\vert\$/g, "|") // Vertical bar symbol
+            .replace(/\\item\s*\[(.*?)\]/g, "• $1") // Bullet points with content
+            .replace(/\\item/g, "• ") // Regular bullet points
+            .replace(/\\begin{.*}/g, "") // Environment begins
+            .replace(/\\end{.*}/g, "") // Environment ends
+            .replace(/\\section{([^}]*)}/g, "$1") // Section headers
+            .replace(/\\subsection{([^}]*)}/g, "  $1") // Subsection headers
+            .replace(/\\vspace{[^}]*}/g, "") // Vertical space
+            .replace(/\\hfill/g, "    ") // Horizontal fill
+            .replace(/{/g, "") // Remove braces
             .replace(/}/g, "")
-            .replace(/\\\\/g, "")
-            .trim()
-        );
+            .replace(/\\\\/g, "") // Remove line breaks
+            .replace(/\\quad/g, "  ") // Space
+            .trim();
+        });
 
-      // Add content to PDF
+      // Add content to PDF with better formatting
       let y = 20;
+      let currentFontSize = 10;
       lines.forEach((line) => {
         if (line.trim() !== "") {
+          // Set larger font for headings (detected by lack of indentation and ending with colon)
           if (line.includes("YOUR FULL NAME")) {
-            doc.setFontSize(16);
+            doc.setFontSize(18);
             doc.text("YOUR FULL NAME", 105, y, { align: "center" });
             doc.setFontSize(10);
-          } else {
+            currentFontSize = 10;
+          } 
+          // Handle section headers (they typically start at the beginning of the line with no spaces)
+          else if (!line.startsWith(" ") && !line.startsWith("•") && line.length < 40) {
+            doc.setFontSize(14);
+            doc.text(line, 10, y);
+            currentFontSize = 14;
+            
+            // Add underline for section headers
+            doc.line(10, y + 1, 200, y + 1);
+          } 
+          // Handle contact info line
+          else if (line.includes("@") && line.includes("|")) {
+            doc.setFontSize(10);
+            doc.text(line, 105, y, { align: "center" });
+            currentFontSize = 10;
+          } 
+          // Regular content
+          else {
+            if (currentFontSize !== 10) {
+              doc.setFontSize(10);
+              currentFontSize = 10;
+            }
+            
+            // Create a new page when reaching the bottom margin
             if (y > 280) {
               doc.addPage();
               y = 20;
             }
-            doc.text(line, 10, y);
+            
+            // Indent bullet points
+            if (line.startsWith("•")) {
+              doc.text(line, 15, y);
+            } else {
+              doc.text(line, 10, y);
+            }
           }
-          y += 7;
+          
+          // Add more space after section headers
+          if (currentFontSize > 10) {
+            y += 10;
+          } else {
+            y += 7;
+          }
         }
       });
 
@@ -483,14 +541,14 @@ const LaTeXEditor = () => {
   }, [previewUrl]);
 
   // Function to handle code changes
-  const handleEditorChange = (editor: any, data: any, value: string) => {
+  const handleEditorChange = useCallback((value: string) => {
     setCode(value);
     
     // Emit code change to other users if collaborating
     if (isCollaborating && socketRef.current) {
       socketRef.current.emit("code-change", { roomId, code: value });
     }
-  };
+  }, [isCollaborating, roomId]);
 
   // Function to handle template selection
   const handleSelectTemplate = (templateCode: string) => {
@@ -632,8 +690,11 @@ const LaTeXEditor = () => {
 
   // Loading spinner component
   const LoadingSpinner = () => (
-    <div className="flex items-center justify-center h-full w-full">
-      <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-purple-500"></div>
+    <div className="flex items-center justify-center">
+      <div className="relative w-12 h-12">
+        <div className="absolute top-0 left-0 w-full h-full border-4 border-purple-200 rounded-full"></div>
+        <div className="absolute top-0 left-0 w-full h-full border-4 border-purple-600 rounded-full border-t-transparent animate-spin"></div>
+      </div>
     </div>
   );
 
@@ -675,18 +736,18 @@ const LaTeXEditor = () => {
   };
 
   return (
-    <div className="bg-[#C599E599]/40 h-screen flex flex-col">
-      <div className="container mx-auto px-4 py-4 flex flex-col h-full">
-        <div className="flex justify-between items-center mb-4">
-          <h1 className="text-2xl font-bold text-center">
-        LaTeX Resume Editor for ResuRabbit
-      </h1>
+    <div className="bg-gradient-to-br from-purple-100 via-[#C599E599]/40 to-purple-100 h-screen flex flex-col overflow-hidden">
+      <div className="container mx-auto px-4 py-3 flex flex-col h-full overflow-hidden">
+        <div className="flex justify-between items-center mb-2">
+          <h1 className="text-2xl font-bold text-center bg-clip-text text-transparent bg-gradient-to-r from-purple-600 to-indigo-600">
+            LaTeX Resume Editor for ResuRabbit
+          </h1>
           
           {/* Collaboration controls */}
           <div className="flex items-center gap-2">
             {isCollaborating && (
-              <div className="flex items-center text-purple-700 bg-purple-100 px-3 py-1 rounded-full text-sm">
-                <FaUsers className="mr-1" />
+              <div className="flex items-center text-purple-700 bg-purple-100 px-3 py-1 rounded-full text-sm border border-purple-200 shadow-sm">
+                <FaUsers className="mr-2" />
                 {activeUsers} active user{activeUsers !== 1 ? 's' : ''}
               </div>
             )}
@@ -696,6 +757,7 @@ const LaTeXEditor = () => {
               size="sm"
               onClick={handleCollaboration}
               icon={<FaShare />}
+              className="shadow-sm hover:shadow transition-all"
             >
               {isCollaborating ? "Leave Room" : "Collaborate"}
             </Button>
@@ -706,6 +768,7 @@ const LaTeXEditor = () => {
                 size="sm"
                 onClick={joinRoom}
                 icon={<FaUsers />}
+                className="shadow-sm hover:shadow transition-all"
               >
                 Join Room
               </Button>
@@ -713,12 +776,14 @@ const LaTeXEditor = () => {
           </div>
         </div>
         
-      <NotificationSystem />
+        <NotificationSystem />
 
-      {showTemplates ? (
-        <ResumeTemplates onSelectTemplate={handleSelectTemplate} />
-      ) : (
-          <div className="flex flex-1 relative overflow-hidden">
+        {showTemplates ? (
+          <div className="flex-1 overflow-auto">
+            <ResumeTemplates onSelectTemplate={handleSelectTemplate} />
+          </div>
+        ) : (
+          <div className="flex flex-1 relative overflow-hidden rounded-xl shadow-lg bg-white/50 backdrop-blur-sm">
             {/* Dashboard toggle button (visible on mobile) */}
             <button
               onClick={toggleDashboard}
@@ -729,24 +794,26 @@ const LaTeXEditor = () => {
 
             {/* Dashboard - Left */}
             {showDashboard && (
-              <div className="w-48 md:w-52 shrink-0 bg-white rounded-l-lg shadow-md mr-1 overflow-y-auto">
-                <div className="p-3">
-                  <h2 className="text-lg font-semibold border-b pb-2">
+              <div className="w-48 md:w-52 shrink-0 bg-white/80 rounded-l-xl shadow-sm mr-1 border-r border-gray-100 flex flex-col h-full">
+                <div className="p-3 border-b border-gray-100">
+                  <h2 className="text-lg font-semibold text-purple-800">
                     Resume Sections
                   </h2>
-                  <ul className="space-y-1 mt-3">
+                </div>
+                <div className="flex-1 overflow-y-auto p-2">
+                  <ul className="space-y-1">
                     {latexSections.map((section) => (
                       <li key={section.id}>
                         <button
                           onClick={() => navigateToSection(section.id)}
-                          className={`flex items-center w-full p-2 rounded hover:bg-gray-100 text-sm ${
+                          className={`flex items-center w-full p-2 rounded-lg transition-all duration-200 text-sm ${
                             activeSectionId === section.id
-                              ? "bg-purple-100 text-purple-700"
-                              : ""
+                              ? "bg-purple-100 text-purple-700 shadow-sm"
+                              : "hover:bg-gray-50 text-gray-700 hover:text-purple-700"
                           }`}
                         >
-                          <span className="mr-2">{section.icon}</span>
-                          <span>{section.title}</span>
+                          <span className="mr-2 text-base">{section.icon}</span>
+                          <span className="font-medium">{section.title}</span>
                         </button>
                       </li>
                     ))}
@@ -756,15 +823,18 @@ const LaTeXEditor = () => {
             )}
 
             {/* Main content grid */}
-            <div className="flex-1 grid grid-cols-1 lg:grid-cols-2 gap-3 overflow-hidden">
-          {/* Editor Section - Left */}
-              <div className="flex flex-col bg-white rounded-lg shadow-md overflow-hidden">
-                <div className="flex justify-between items-center p-3 border-b bg-gray-50">
-                  <h2 className="text-lg font-semibold">Edit LaTeX</h2>
+            <div className="flex-1 grid grid-cols-1 lg:grid-cols-2 gap-2 p-2 overflow-hidden">
+              {/* Editor Section - Left */}
+              <div className="flex flex-col bg-white rounded-xl shadow-sm overflow-hidden border border-gray-100 h-full">
+                <div className="flex justify-between items-center p-2 border-b bg-gray-50">
+                  <h2 className="text-base font-semibold text-gray-800 flex items-center">
+                    <FaCode className="mr-2 text-purple-600" />
+                    Edit LaTeX
+                  </h2>
                   <div className="flex gap-2">
-              <button
+                    <button
                       onClick={copyToClipboard}
-                      className="flex items-center justify-center p-2 rounded hover:bg-gray-100"
+                      className="flex items-center justify-center p-2 rounded-full hover:bg-gray-100 transition-colors text-gray-700"
                       title="Copy LaTeX Code"
                     >
                       <FaCopy />
@@ -772,91 +842,96 @@ const LaTeXEditor = () => {
                     <Button
                       color="purple"
                       size="sm"
-                onClick={() => setShowTemplates(true)}
+                      onClick={() => setShowTemplates(true)}
                       iconName="resume"
+                      className="shadow-sm"
                     >
                       Templates
                     </Button>
                   </div>
                 </div>
                 <div 
-                  className="flex-1 p-3 overflow-hidden" 
+                  className="flex-1 overflow-hidden" 
                   ref={editorRef}
                 >
                   <CodeMirror
                     value={code}
-                    options={{
-                      mode: "stex",
-                      theme: "material",
+                    height="100%"
+                    onChange={handleEditorChange}
+                    theme={materialDark}
+                    basicSetup={{
                       lineNumbers: true,
-                      lineWrapping: true,
-                      indentWithTabs: true,
-                      tabSize: 2,
-                      autofocus: true,
-                      viewportMargin: Infinity,
+                      highlightActiveLine: true,
+                      highlightSelectionMatches: true,
+                      autocompletion: true,
+                      foldGutter: true,
+                      indentOnInput: true,
                     }}
-                    onBeforeChange={handleEditorChange}
-                    className="h-full"
+                    extensions={[StreamLanguage.define(stex)]}
+                    ref={cmRef as any}
                   />
-            </div>
-          </div>
+                </div>
+              </div>
 
-          {/* Preview Section - Right */}
-              <div className="flex flex-col bg-white rounded-lg shadow-md overflow-hidden">
-                <h2 className="text-lg font-semibold p-3 border-b bg-gray-50">
-                  PDF Preview
-                </h2>
-                <div className="flex-1 bg-gray-50 overflow-hidden">
-              {isCompiling ? (
-                <div className="flex items-center justify-center h-full w-full">
-                  <LoadingSpinner />
-                      <span className="ml-3 text-gray-600">
+              {/* Preview Section - Right */}
+              <div className="flex flex-col bg-white rounded-xl shadow-sm overflow-hidden border border-gray-100 h-full">
+                <div className="flex justify-between items-center p-2 border-b bg-gray-50">
+                  <h2 className="text-base font-semibold text-gray-800 flex items-center">
+                    <FaFileAlt className="mr-2 text-purple-600" />
+                    PDF Preview
+                  </h2>
+                  <div className="flex gap-2">
+                    <Button
+                      color="purple"
+                      size="sm"
+                      onClick={compileLatex}
+                      disabled={isCompiling}
+                      iconName="view"
+                      className={isCompiling ? "opacity-70 cursor-not-allowed" : ""}
+                    >
+                      {isCompiling ? "Compiling..." : "Compile"}
+                    </Button>
+                    <Button
+                      color="lime"
+                      size="sm"
+                      onClick={downloadPdf}
+                      disabled={isCompiling}
+                      icon={<FaDownload />}
+                      className={isCompiling ? "opacity-70 cursor-not-allowed" : ""}
+                    >
+                      {isCompiling ? "..." : "Download"}
+                    </Button>
+                  </div>
+                </div>
+                <div className="flex-1 bg-white overflow-hidden">
+                  {isCompiling ? (
+                    <div className="flex items-center justify-center h-full w-full">
+                      <LoadingSpinner />
+                      <span className="ml-4 text-gray-600 font-medium">
                         Compiling LaTeX...
                       </span>
+                    </div>
+                  ) : error ? (
+                    <div className="bg-red-50 text-red-700 p-4 h-full overflow-auto">
+                      <p className="font-bold mb-2">Compilation Error:</p>
+                      <pre className="whitespace-pre-wrap text-sm font-mono bg-red-100/50 p-3 rounded">{error}</pre>
+                    </div>
+                  ) : previewUrl ? (
+                    <iframe
+                      src={previewUrl}
+                      className="w-full h-full"
+                      title="PDF Preview"
+                    />
+                  ) : (
+                    <div className="flex flex-col items-center justify-center h-full text-gray-500">
+                      <FaFileAlt className="w-12 h-12 mb-4 text-gray-400 opacity-50" />
+                      <p className="text-center font-medium">Click "Compile" to preview</p>
+                      <p className="text-sm text-gray-400 mt-1">Your resume will appear here</p>
+                    </div>
+                  )}
                 </div>
-              ) : error ? (
-                <div className="bg-red-100 text-red-700 p-4 h-full overflow-auto">
-                  <p className="font-bold mb-2">Compilation Error:</p>
-                      <pre className="whitespace-pre-wrap text-sm">{error}</pre>
-                </div>
-              ) : previewUrl ? (
-                <iframe
-                  src={previewUrl}
-                  className="w-full h-full"
-                  title="PDF Preview"
-                />
-              ) : (
-                <div className="flex flex-col items-center justify-center h-full text-gray-500">
-                      <FaFileAlt className="w-16 h-16 mb-4 text-gray-400" />
-                  <p>Click "Compile LaTeX" to see preview</p>
-                </div>
-              )}
-                </div>
+              </div>
             </div>
-          </div>
-        </div>
-      )}
-
-        {!showTemplates && (
-          <div className="flex gap-4 justify-center mt-4 mb-2">
-            <Button
-              color="purple"
-          onClick={compileLatex}
-          disabled={isCompiling}
-              iconName="view"
-              className={isCompiling ? "opacity-70 cursor-not-allowed" : ""}
-            >
-              {isCompiling ? "Compiling..." : "Compile LaTeX"}
-            </Button>
-            <Button
-              color="lime"
-          onClick={downloadPdf}
-          disabled={isCompiling}
-              icon={<FaDownload />}
-              className={isCompiling ? "opacity-70 cursor-not-allowed" : ""}
-            >
-              {isCompiling ? "Processing..." : "Download PDF"}
-            </Button>
           </div>
         )}
       </div>
