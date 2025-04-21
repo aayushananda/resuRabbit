@@ -1,10 +1,13 @@
 "use client";
 
-import { usePathname } from "next/navigation";
+import { useState } from "react";
+import { usePathname, useRouter } from "next/navigation";
 import Image from "next/image";
 import Logo from "../public/images/ResuLogo.png";
 import Link from "next/link";
 import { Button } from "./Button";
+import ProfileDropdown from "./ProfileDropdown";
+import { useSession, signOut } from "next-auth/react";
 
 const navigation = [
   { name: "Home", href: "/" },
@@ -16,8 +19,15 @@ const navigation = [
 
 export default function Navbar() {
   const pathname = usePathname();
+  const { data: session } = useSession();
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+
+  const toggleDropdown = () => {
+    setIsDropdownOpen(!isDropdownOpen);
+  };
+
   return (
-    <nav className="bg-white" >
+    <nav className="bg-white">
       <div className="py-5 px-8 mx-auto max-w-7xl">
         <div className="flex items-center justify-between space-x-1">
           <div className="flex items-center space-x-8">
@@ -58,14 +68,36 @@ export default function Navbar() {
             </div>
           </div>
           <div className="hidden md:flex md:items-center md:space-x-3">
-            <Link href="/signup">
-              <Button color="lime" iconName="signup">
-                Sign Up
-              </Button>
-            </Link>
-            <Link href="/login">
-              <Button iconName="login">Login</Button>
-            </Link>
+            {session ? (
+              <div className="relative">
+                <button onClick={toggleDropdown} className="focus:outline-none">
+                  <Image
+                    src="https://avatar.iran.liara.run/public"
+                    width={45}
+                    height={45}
+                    alt="Profile"
+                    className="rounded-full items-center pt-2"
+                  />
+                </button>
+                {isDropdownOpen && (
+                  <ProfileDropdown
+                    onClose={() => setIsDropdownOpen(false)}
+                    onSignOut={() => signOut({ callbackUrl: "/" })}
+                  />
+                )}
+              </div>
+            ) : (
+              <>
+                <Link href="/signup">
+                  <Button color="lime" iconName="signup">
+                    Sign Up
+                  </Button>
+                </Link>
+                <Link href="/login">
+                  <Button iconName="login">Login</Button>
+                </Link>
+              </>
+            )}
           </div>
         </div>
       </div>
