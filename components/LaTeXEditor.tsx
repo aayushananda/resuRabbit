@@ -406,12 +406,6 @@ const LaTeXEditor = () => {
     }
   };
 
-  // Set the initial template on component mount
-  useEffect(() => {
-    // This ensures the template is loaded on initial render
-    setCode(resumeTemplate);
-  }, []);
-
   // Create a client-side PDF (fallback when server is not available)
   const createClientSidePdf = () => {
     try {
@@ -746,8 +740,8 @@ const LaTeXEditor = () => {
       <div className="container mx-auto px-4 py-3 flex flex-col h-full overflow-hidden">
         <div className="flex justify-between items-center mb-2">
           <h1 className="text-2xl font-bold text-center bg-clip-text text-transparent bg-gradient-to-r from-purple-600 to-indigo-600">
-            LaTeX Resume Editor for ResuRabbit
-          </h1>
+        LaTeX Resume Editor for ResuRabbit
+      </h1>
           
           {/* Collaboration controls */}
           <div className="flex items-center gap-3">
@@ -782,11 +776,11 @@ const LaTeXEditor = () => {
           </div>
         </div>
         
-        <NotificationSystem />
+      <NotificationSystem />
 
-        {showTemplates ? (
+      {showTemplates ? (
           <div className="flex-1 overflow-auto">
-            <ResumeTemplates onSelectTemplate={handleSelectTemplate} />
+        <ResumeTemplates onSelectTemplate={handleSelectTemplate} />
           </div>
         ) : (
           <div className="flex flex-1 relative overflow-hidden rounded-xl shadow-lg bg-white/50 backdrop-blur-sm">
@@ -831,7 +825,7 @@ const LaTeXEditor = () => {
             {/* Main content grid */}
             <div className="flex-1 flex flex-col overflow-hidden">
               <div className="flex-1 grid grid-cols-1 lg:grid-cols-2 gap-2 p-2 overflow-hidden">
-                {/* Editor Section - Left */}
+          {/* Editor Section - Left */}
                 <div className="flex flex-col bg-white rounded-xl shadow-sm overflow-hidden border border-gray-100 h-full">
                   <div className="flex justify-between items-center p-2 border-b bg-gray-50">
                     <h2 className="text-base font-semibold text-gray-800 flex items-center">
@@ -839,7 +833,7 @@ const LaTeXEditor = () => {
                       Edit LaTeX
                     </h2>
                     <div className="flex gap-2">
-                      <button
+              <button
                         onClick={copyToClipboard}
                         className="flex items-center justify-center p-2 rounded-full hover:bg-gray-100 transition-colors text-gray-700"
                         title="Copy LaTeX Code"
@@ -849,7 +843,7 @@ const LaTeXEditor = () => {
                       <Button
                         color="purple"
                         size="sm"
-                        onClick={() => setShowTemplates(true)}
+                onClick={() => setShowTemplates(true)}
                         iconName="resume"
                         className="shadow-sm mx-0"
                       >
@@ -876,12 +870,12 @@ const LaTeXEditor = () => {
                       }}
                       extensions={[StreamLanguage.define(stex)]}
                       ref={cmRef as any}
-                      className="h-full text-base"
+                      style={{ height: '100%', fontSize: '14px' }}
                     />
-                  </div>
-                </div>
+            </div>
+          </div>
 
-                {/* Preview Section - Right */}
+          {/* Preview Section - Right */}
                 <div className="flex flex-col bg-white rounded-xl shadow-sm overflow-hidden border border-gray-100 h-full">
                   <div className="flex justify-between items-center p-2 border-b bg-gray-50">
                     <h2 className="text-base font-semibold text-gray-800 flex items-center">
@@ -890,42 +884,42 @@ const LaTeXEditor = () => {
                     </h2>
                   </div>
                   <div className="flex-1 bg-white overflow-hidden">
-                    {isCompiling ? (
-                      <div className="flex items-center justify-center h-full w-full">
-                        <LoadingSpinner />
+              {isCompiling ? (
+                <div className="flex items-center justify-center h-full w-full">
+                  <LoadingSpinner />
                         <span className="ml-4 text-gray-600 font-medium">
                           Compiling LaTeX...
                         </span>
-                      </div>
-                    ) : error ? (
+                </div>
+              ) : error ? (
                       <div className="bg-red-50 text-red-700 p-4 h-full overflow-auto">
-                        <p className="font-bold mb-2">Compilation Error:</p>
+                  <p className="font-bold mb-2">Compilation Error:</p>
                         <pre className="whitespace-pre-wrap text-sm font-mono bg-red-100/50 p-3 rounded">{error}</pre>
-                      </div>
-                    ) : previewUrl ? (
-                      <iframe
-                        src={previewUrl}
-                        className="w-full h-full"
-                        title="PDF Preview"
-                      />
-                    ) : (
-                      <div className="flex flex-col items-center justify-center h-full text-gray-500">
+                </div>
+              ) : previewUrl ? (
+                <iframe
+                  src={previewUrl}
+                  className="w-full h-full"
+                  title="PDF Preview"
+                />
+              ) : (
+                <div className="flex flex-col items-center justify-center h-full text-gray-500">
                         <FaFileAlt className="w-12 h-12 mb-4 text-gray-400 opacity-50" />
                         <p className="text-center font-medium">Click "Compile" to preview</p>
                         <p className="text-sm text-gray-400 mt-1">Your resume will appear here</p>
-                      </div>
-                    )}
-                  </div>
                 </div>
-              </div>
+              )}
+            </div>
+          </div>
+        </div>
 
               {/* Action buttons properly aligned below the grid */}
               <div className="flex justify-center items-center py-4 px-4 gap-6 border-t border-gray-200 bg-white/70 rounded-b-xl mt-1">
                 <Button
                   color="purple"
                   size="sm"
-                  onClick={compileLatex}
-                  disabled={isCompiling}
+          onClick={compileLatex}
+          disabled={isCompiling}
                   iconName="view"
                   className={`min-w-[150px] px-4 ${isCompiling ? "opacity-70 cursor-not-allowed" : ""}`}
                 >
@@ -934,8 +928,8 @@ const LaTeXEditor = () => {
                 <Button
                   color="lime"
                   size="sm"
-                  onClick={downloadPdf}
-                  disabled={isCompiling}
+          onClick={downloadPdf}
+          disabled={isCompiling}
                   icon={<FaDownload />}
                   className={`min-w-[150px] px-4 ${isCompiling ? "opacity-70 cursor-not-allowed" : ""}`}
                 >
