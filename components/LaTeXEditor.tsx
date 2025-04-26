@@ -16,14 +16,12 @@ import {
   FaShare,
   FaUsers,
   FaCopy,
-  FaTimes,
 } from "react-icons/fa";
 import { IoMdDocument } from "react-icons/io";
 import { jsPDF } from "jspdf";
 import io from "socket.io-client";
 import type { Socket } from "socket.io-client";
 import { v4 as uuidv4 } from "uuid";
-import Modal from "./Modal";
 
 // Ensure API URL ends with a trailing slash
 const API_URL =
@@ -240,12 +238,6 @@ const LaTeXEditor = () => {
   const socketRef = useRef<Socket | null>(null);
   const editorRef = useRef<HTMLDivElement>(null);
   const cmRef = useRef<any>(null);
-  const [socketConnected, setSocketConnected] = useState(false);
-
-  const [showJoinModal, setShowJoinModal] = useState(false);
-  const [joinRoomInput, setJoinRoomInput] = useState("");
-  const [joinRoomError, setJoinRoomError] = useState("");
-  const [showLeaveConfirmModal, setShowLeaveConfirmModal] = useState(false);
 
   // Define LaTeX sections for the dashboard
   const latexSections: LatexSection[] = [
@@ -317,88 +309,37 @@ const LaTeXEditor = () => {
     );
   };
 
-  // Set up socket connection for collaboration
+  // Initialize socket connection for collaboration
   useEffect(() => {
     if (isCollaborating && roomId) {
-      // Initialize socket connection
-      const socketUrl = process.env.NEXT_PUBLIC_SOCKET_URL || 'http://localhost:5000';
-      const socket = io(socketUrl);
-      socketRef.current = socket;
-
-      // Socket event handlers
-      socket.on('connect', () => {
-        console.log('Connected to socket server');
-        setSocketConnected(true);
-        
-        // Join the room
-        socket.emit('join-room', { roomId });
-        addNotification("success", "Connected to collaboration server");
+      // Initialize Socket.IO connection
+      socketRef.current = io(SOCKET_URL);
+      
+      // Join room
+      socketRef.current.emit("join-room", roomId);
+      
+      // Listen for code updates from other users
+      socketRef.current.on("code-update", (data: { code: string }) => {
+        // Update the code state
+        setCode(data.code);
       });
-
-      socket.on('connect_error', (err) => {
-        console.error('Socket connection error:', err);
-        setSocketConnected(false);
-        addNotification("error", "Failed to connect to collaboration server. Please try again.");
-      });
-
-      socket.on('disconnect', () => {
-        console.log('Disconnected from socket server');
-        setSocketConnected(false);
-        addNotification("info", "Disconnected from collaboration server");
-      });
-
-      socket.on('user-count', (count) => {
-        console.log('Active users:', count);
+      
+      // Listen for user count updates
+      socketRef.current.on("user-count", (count: number) => {
         setActiveUsers(count);
       });
 
-      socket.on('code-update', (data) => {
-        if (data.roomId === roomId && data.code !== code) {
-          setCode(data.code);
-        }
-      });
-
-      // Clean up connection on unmount or when collaboration ends
+      // Notify user
+      addNotification("info", `Connected to room: ${roomId}`);
+      
+      // Clean up on unmount or when disconnecting
       return () => {
-        socket.disconnect();
-        socketRef.current = null;
-      };
-    }
-  }, [isCollaborating, roomId]);
-
-  // Function to handle leaving a collaboration room
-  const leaveCollaborationRoom = async () => {
-    if (isCollaborating && roomId) {
-      try {
-        // Call the API to leave the room
-        const response = await fetch('/api/collaboration/leave', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({ roomId }),
-        });
-
-        if (!response.ok) {
-          const errorData = await response.json();
-          throw new Error(errorData.error || 'Failed to leave room');
-        }
-
-        // Disconnect socket
         if (socketRef.current) {
           socketRef.current.disconnect();
         }
-        
-        // Reset collaboration state
-        setIsCollaborating(false);
-        setActiveUsers(1);
-        addNotification("success", "Successfully left collaboration room");
-      } catch (error) {
-        console.error('Error leaving room:', error);
-        addNotification("error", `Failed to leave room: ${error instanceof Error ? error.message : 'Unknown error'}`);
-      }
+      };
     }
-  };
+  }, [isCollaborating, roomId]);
 
   // Create or join a collaboration room
   const handleCollaboration = () => {
@@ -408,43 +349,27 @@ const LaTeXEditor = () => {
       setRoomId(newRoomId);
       setIsCollaborating(true);
       
-      // Use notification system for better feedback
-      addNotification("success", `Room created with ID: ${newRoomId}`);
-      
       // Copy room ID to clipboard
       navigator.clipboard.writeText(newRoomId)
-        .then(() => addNotification("info", "Room ID copied to clipboard. Share it with collaborators!"));
+        .then(() => addNotification("success", "Room ID copied to clipboard. Share it with collaborators!"));
     } else {
-      // Show confirmation modal before leaving
-      setShowLeaveConfirmModal(true);
+      // Disconnect from room
+      if (socketRef.current) {
+        socketRef.current.disconnect();
+      }
+      setIsCollaborating(false);
+      setActiveUsers(1);
+      addNotification("info", "Disconnected from collaboration room");
     }
-  };
-  
-  // Handle confirmed room exit
-  const handleConfirmLeaveRoom = () => {
-    leaveCollaborationRoom();
-    setShowLeaveConfirmModal(false);
   };
 
   // Join an existing room
   const joinRoom = () => {
-    setShowJoinModal(true);
-    setJoinRoomInput("");
-    setJoinRoomError("");
-  };
-
-  const handleJoinRoomSubmit = () => {
-    if (!joinRoomInput.trim()) {
-      setJoinRoomError("Please enter a room ID");
-      return;
+    const enteredRoomId = prompt("Enter room ID to collaborate:");
+    if (enteredRoomId) {
+      setRoomId(enteredRoomId);
+      setIsCollaborating(true);
     }
-    
-    setRoomId(joinRoomInput.trim());
-    setIsCollaborating(true);
-    setShowJoinModal(false);
-    
-    // Add notification for user feedback
-    addNotification("info", "Connecting to collaboration room...");
   };
 
   // Function to navigate to section in the editor
@@ -821,18 +746,9 @@ const LaTeXEditor = () => {
           {/* Collaboration controls */}
           <div className="flex items-center gap-3">
             {isCollaborating && (
-              <div className="flex flex-col items-end">
-                <div className="flex items-center text-purple-700 bg-purple-100 px-3 py-1 rounded-full text-sm border border-purple-200 shadow-sm mr-1 relative">
-                  <span className={`absolute -top-1 -left-1 w-3 h-3 ${socketConnected ? 'bg-green-500' : 'bg-red-500'} rounded-full animate-pulse`}></span>
-                  <FaUsers className="mr-2" />
-                  {activeUsers} active user{activeUsers !== 1 ? 's' : ''}
-                </div>
-                {roomId && (
-                  <div className="text-xs text-gray-600 mr-2 mt-1">
-                    Room ID: <span className="font-mono font-medium">{roomId}</span>
-                    {!socketConnected && <span className="text-red-500 ml-1">(reconnecting...)</span>}
-                  </div>
-                )}
+              <div className="flex items-center text-purple-700 bg-purple-100 px-3 py-1 rounded-full text-sm border border-purple-200 shadow-sm mr-1">
+                <FaUsers className="mr-2" />
+                {activeUsers} active user{activeUsers !== 1 ? 's' : ''}
               </div>
             )}
             
@@ -841,7 +757,7 @@ const LaTeXEditor = () => {
               size="sm"
               onClick={handleCollaboration}
               icon={<FaShare />}
-              className={`shadow-sm hover:shadow transition-all mx-0 px-3 ${isCollaborating ? 'bg-opacity-90' : ''}`}
+              className="shadow-sm hover:shadow transition-all mx-0 px-3"
             >
               {isCollaborating ? "Leave Room" : "Collaborate"}
             </Button>
@@ -1024,90 +940,6 @@ const LaTeXEditor = () => {
           </div>
         )}
       </div>
-
-      {/* Join Room Modal */}
-      <Modal
-        isOpen={showJoinModal}
-        onClose={() => setShowJoinModal(false)}
-        title="Join Collaboration Room"
-      >
-        {joinRoomError && (
-          <div className="mb-4 p-3 bg-red-50 text-red-700 rounded-lg border border-red-100">
-            {joinRoomError}
-          </div>
-        )}
-        
-        <div className="mb-4">
-          <label htmlFor="roomId" className="block text-sm font-medium text-gray-700 mb-1">
-            Room ID
-          </label>
-          <input
-            id="roomId"
-            type="text"
-            value={joinRoomInput}
-            onChange={(e) => setJoinRoomInput(e.target.value)}
-            placeholder="Enter the room ID shared with you"
-            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
-            onKeyDown={(e) => {
-              if (e.key === 'Enter') {
-                handleJoinRoomSubmit();
-              }
-            }}
-          />
-          <p className="mt-1 text-sm text-gray-500">
-            Room ID is provided by the person who created the room
-          </p>
-        </div>
-        
-        <div className="flex justify-end space-x-3">
-          <button
-            onClick={() => setShowJoinModal(false)}
-            className="px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-lg transition-colors text-sm font-medium"
-          >
-            Cancel
-          </button>
-          <Button
-            color="lime"
-            size="sm"
-            onClick={handleJoinRoomSubmit}
-            icon={<FaUsers />}
-            className="px-4"
-          >
-            Join Room
-          </Button>
-        </div>
-      </Modal>
-      
-      {/* Leave Room Confirmation Modal */}
-      <Modal
-        isOpen={showLeaveConfirmModal}
-        onClose={() => setShowLeaveConfirmModal(false)}
-        title="Leave Collaboration Room"
-        maxWidth="max-w-sm"
-      >
-        <div className="mb-6">
-          <p className="text-gray-700">
-            Are you sure you want to leave this collaboration room? You will no longer be able to collaborate on this document unless you rejoin with the room ID.
-          </p>
-        </div>
-        
-        <div className="flex justify-end space-x-3">
-          <button
-            onClick={() => setShowLeaveConfirmModal(false)}
-            className="px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-lg transition-colors text-sm font-medium"
-          >
-            Cancel
-          </button>
-          <Button
-            color="purple"
-            size="sm"
-            onClick={handleConfirmLeaveRoom}
-            className="px-4"
-          >
-            Leave Room
-          </Button>
-        </div>
-      </Modal>
     </div>
   );
 };
