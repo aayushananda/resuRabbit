@@ -37,10 +37,10 @@ export default function Navbar() {
                   Find Jobs
                 </Link>
                 <Link
-                  href="/companies"
+                  href="/suggestions"
                   className="hover:text-[#6300B3] hover:border-b-2 hover:border-b-[#6300B3] pb-1"
                 >
-                  Companies
+                  Suggestions
                 </Link>
                 <Link
                   href="/resume-builder"
