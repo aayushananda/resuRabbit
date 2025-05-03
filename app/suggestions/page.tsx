@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, FormEvent } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 
 interface Message {
   sender: "user" | "bot";
@@ -43,7 +44,7 @@ const Search: React.FC = () => {
 
   const handleSubmit = (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    const input = (e.currentTarget.elements.namedItem("chat-input") as HTMLInputElement);
+    const input = e.currentTarget.elements.namedItem("chat-input") as HTMLInputElement;
     const userMessage = input.value.trim();
     if (userMessage) {
       handleSendMessage(userMessage);
@@ -52,72 +53,74 @@ const Search: React.FC = () => {
   };
 
   return (
-    <div className="flex flex-col w-full sm:w-screen h-[560px] bg-transparent text-white sm:p-3">
-      <div className="flex flex-col w-full md:w-2/3 lg:w-full bg-transparent rounded-lg h-full overflow-hidden">
+    <div className="flex flex-col w-full h-[560px] bg-[#C599E5]/20 text-black sm:p-4 rounded-xl shadow-md">
+      <div className="flex flex-col w-full h-full overflow-hidden bg-white rounded-xl">
+        {/* Messages */}
         <div className="flex flex-col h-full overflow-y-auto p-4 space-y-3">
-          {messages.map((msg, index) => (
-            <div
-              key={index}
-              className={`flex items-start ${
-                msg.sender === "user" ? "justify-end" : "justify-start"
-              }`}
-            >
-              {msg.sender === "bot" && (
-                <img
-                  src="/Logo.png"
-                  alt="Bot"
-                  className="w-8 h-8 rounded-full mr-3"
-                />
-              )}
-              <div
-                className={`max-w-xs md:max-w-sm p-3 rounded-lg ${
-                  msg.sender === "user"
-                    ? "bg-blue-600 text-white"
-                    : "bg-gray-700 text-gray-300"
+          <AnimatePresence initial={false}>
+            {messages.map((msg, index) => (
+              <motion.div
+                key={index}
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.3 }}
+                className={`flex items-start ${
+                  msg.sender === "user" ? "justify-end" : "justify-start"
                 }`}
               >
-                {msg.text}
-              </div>
-              {msg.sender === "user" && (
-                <img
-                  src="/Profile.png"
-                  alt="User"
-                  className="w-8 h-8 rounded-full ml-3"
-                />
-              )}
-            </div>
-          ))}
+                <div
+                  className={`max-w-xs md:max-w-sm p-3 rounded-lg ${
+                    msg.sender === "user"
+                      ? "bg-[#7C3AED] text-white"
+                      : "bg-[#F3F4F6] text-gray-800"
+                  }`}
+                >
+                  {msg.text}
+                </div>
+              </motion.div>
+            ))}
+          </AnimatePresence>
+
           {isTyping && (
-            <div className="flex items-center">
-              <img
-                src="/Logo.png"
-                alt="Bot"
-                className="w-8 h-8 rounded-full mr-3"
-              />
-              <div className="bg-gray-700 text-gray-300 p-3 rounded-lg">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{
+                repeat: Infinity,
+                repeatType: "reverse",
+                duration: 0.8,
+              }}
+              className="flex items-center"
+            >
+              <div className="bg-[#F3F4F6] text-gray-800 p-3 rounded-lg">
                 Typing...
               </div>
-            </div>
+            </motion.div>
           )}
         </div>
 
-        <form
+        {/* Input */}
+        <motion.form
           onSubmit={handleSubmit}
-          className="flex items-center p-4 bg-gray-900 rounded-2xl"
+          initial={{ y: 20, opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
+          transition={{ duration: 0.4 }}
+          className="flex items-center p-4 border-t bg-[#F9FAFB]"
         >
           <input
             name="chat-input"
             type="text"
             placeholder="Generate Suggestions For Resume"
-            className="flex-1 px-2 sm:px-4 py-2 bg-gray-800 text-white rounded-l-lg focus:outline-none"
+            className="flex-1 px-4 py-2 rounded-l-md border border-gray-300 text-sm focus:outline-none"
           />
           <button
             type="submit"
-            className="px-4 py-2 bg-blue-600 text-white rounded-r-lg hover:bg-blue-700"
+            className="px-4 py-2 bg-purple-600 text-white rounded-r-md hover:bg-purple-700 text-sm"
           >
             Send
           </button>
-        </form>
+        </motion.form>
       </div>
     </div>
   );
