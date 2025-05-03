@@ -341,40 +341,6 @@ const LaTeXEditor = () => {
     }
   }, [isCollaborating, roomId]);
 
-  // Function to handle leaving a collaboration room
-  const leaveCollaborationRoom = async () => {
-    if (isCollaborating && roomId) {
-      try {
-        // Call the API to leave the room
-        const response = await fetch('/api/collaboration/leave', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({ roomId }),
-        });
-
-        if (!response.ok) {
-          const errorData = await response.json();
-          throw new Error(errorData.error || 'Failed to leave room');
-        }
-
-        // Disconnect socket
-        if (socketRef.current) {
-          socketRef.current.disconnect();
-        }
-        
-        // Reset collaboration state
-        setIsCollaborating(false);
-        setActiveUsers(1);
-        addNotification("success", "Successfully left collaboration room");
-      } catch (error) {
-        console.error('Error leaving room:', error);
-        addNotification("error", `Failed to leave room: ${error instanceof Error ? error.message : 'Unknown error'}`);
-      }
-    }
-  };
-
   // Create or join a collaboration room
   const handleCollaboration = () => {
     if (!isCollaborating) {
@@ -387,8 +353,13 @@ const LaTeXEditor = () => {
       navigator.clipboard.writeText(newRoomId)
         .then(() => addNotification("success", "Room ID copied to clipboard. Share it with collaborators!"));
     } else {
-      // Call the leave room function instead of just disconnecting
-      leaveCollaborationRoom();
+      // Disconnect from room
+      if (socketRef.current) {
+        socketRef.current.disconnect();
+      }
+      setIsCollaborating(false);
+      setActiveUsers(1);
+      addNotification("info", "Disconnected from collaboration room");
     }
   };
 
