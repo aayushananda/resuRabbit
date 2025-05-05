@@ -289,8 +289,6 @@ const LaTeXEditor = () => {
     }
   }, [isCollaborating, roomId]);
 
-<<<<<<< Updated upstream
-=======
   // Function to handle leaving a collaboration room
   const leaveCollaborationRoom = async () => {
     if (isCollaborating && roomId) {
@@ -330,7 +328,6 @@ const LaTeXEditor = () => {
     }
   };
 
->>>>>>> Stashed changes
   // Create or join a collaboration room
   const handleCollaboration = () => {
     if (!isCollaborating) {
@@ -349,13 +346,8 @@ const LaTeXEditor = () => {
           )
         );
     } else {
-      // Disconnect from room
-      if (socketRef.current) {
-        socketRef.current.disconnect();
-      }
-      setIsCollaborating(false);
-      setActiveUsers(1);
-      addNotification("info", "Disconnected from collaboration room");
+      // Call the leave room function instead of just disconnecting
+      leaveCollaborationRoom();
     }
   };
 
