@@ -1,0 +1,42 @@
+version: "3.8"
+
+services:
+  latex-server:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "3001:3001"
+    environment:
+      - REDIS_URL=redis://redis:6379
+      - NODE_ENV=production
+      - MAX_COMPILE_TIME_MS=30000
+      - MAX_JOB_AGE_HOURS=2
+      - QUEUE_CONCURRENCY=3
+    depends_on:
+      - redis
+    restart: unless-stopped
+    ulimits:
+      nproc: 50
+      nofile:
+        soft: 20000
+        hard: 40000
+    mem_limit: 2g
+    security_opt:
+      - no-new-privileges:true
+    volumes:
+      - latex_temp:/app/dist/temp
+      - latex_public:/app/dist/public
+
+  redis:
+    image: redis:alpine
+    ports:
+      - "6379:6379"
+    restart: unless-stopped
+    volumes:
+      - redis_data:/data
+
+volumes:
+  latex_temp:
+  latex_public:
+  redis_data:

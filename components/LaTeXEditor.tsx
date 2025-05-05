@@ -1,9 +1,15 @@
 "use client";
-import React, { useState, useEffect, useRef, useCallback } from "react";
-import CodeMirror from '@uiw/react-codemirror';
-import { StreamLanguage } from '@codemirror/language';
-import { stex } from '@codemirror/legacy-modes/mode/stex';
-import { materialDark } from '@uiw/codemirror-theme-material';
+import React, {
+  useState,
+  useEffect,
+  useRef,
+  useCallback,
+  useMemo,
+} from "react";
+import CodeMirror from "@uiw/react-codemirror";
+import { StreamLanguage } from "@codemirror/language";
+import { stex } from "@codemirror/legacy-modes/mode/stex";
+import { materialDark } from "@uiw/codemirror-theme-material";
 import ResumeTemplates from "./ResumeTemplates";
 import { Button } from "./Button";
 import {
@@ -18,10 +24,32 @@ import {
   FaCopy,
 } from "react-icons/fa";
 import { IoMdDocument } from "react-icons/io";
-import { jsPDF } from "jspdf";
 import io from "socket.io-client";
 import type { Socket } from "socket.io-client";
 import { v4 as uuidv4 } from "uuid";
+import { renderToString } from "react-dom/server";
+import KaTeX from "katex";
+import { unified } from "unified";
+import remarkParse from "remark-parse";
+import remarkRehype from "remark-rehype";
+import rehypeKatex from "rehype-katex";
+import rehypeStringify from "rehype-stringify";
+import remarkMath from "remark-math";
+import html2canvas from "html2canvas";
+import { debounce } from "lodash";
+import dynamic from "next/dynamic";
+
+// Use dynamic imports for react-pdf components
+const PDFViewer = dynamic(() => import("../components/PDFViewer"), {
+  ssr: false, // This component will only be rendered on client-side
+  loading: () => (
+    <div className="flex items-center justify-center h-full w-full">
+      <span className="ml-4 text-gray-600 font-medium">
+        Loading PDF viewer...
+      </span>
+    </div>
+  ),
+});
 
 // Ensure API URL ends with a trailing slash
 const API_URL =
@@ -31,7 +59,8 @@ const API_URL =
   ) + "/";
 
 // Socket URL for collaborative editing
-const SOCKET_URL = process.env.NEXT_PUBLIC_SOCKET_URL || "http://localhost:5000";
+const SOCKET_URL =
+  process.env.NEXT_PUBLIC_SOCKET_URL || "http://localhost:5000";
 
 // Notification types
 type NotificationType = "success" | "error" | "info";
@@ -51,172 +80,91 @@ interface LatexSection {
 }
 
 const LaTeXEditor = () => {
-  const resumeTemplate = `\\documentclass[a4paper,11pt]{article}
-\\usepackage{fontawesome}
-\\usepackage{latexsym}
+  const resumeTemplate = `\\documentclass[a4paper,10pt]{article}
 \\usepackage[empty]{fullpage}
 \\usepackage{titlesec}
 \\usepackage{marvosym}
 \\usepackage[usenames,dvipsnames]{color}
-\\usepackage{verbatim}
 \\usepackage{enumitem}
-\\usepackage[pdftex]{hyperref}
+\\usepackage[hidelinks]{hyperref}
 \\usepackage{fancyhdr}
+
+%----------FONT----------
+\\usepackage[T1]{fontenc}
+\\usepackage{tgpagella}
+
+%----------PAGE SETUP----------
 \\pagestyle{fancy}
 \\fancyhf{} % clear all header and footer fields
 \\fancyfoot{}
 \\renewcommand{\\headrulewidth}{0pt}
 \\renewcommand{\\footrulewidth}{0pt}
-% Adjust margins
-\\addtolength{\\oddsidemargin}{-0.530in}
-\\addtolength{\\evensidemargin}{-0.375in}
-\\addtolength{\\textwidth}{1in}
-\\addtolength{\\topmargin}{-.45in}
-\\addtolength{\\textheight}{1in}
-\\urlstyle{rm}
-\\raggedbottom
-\\raggedright
-\\setlength{\\tabcolsep}{0in}
-% Sections formatting
-\\titleformat{\\section}{
-  \\vspace{-10pt}\\scshape\\raggedright\\large
-}{}{0em}{}[\\color{black}\\titlerule \\vspace{-6pt}]
-%-------------------------
-% Custom commands
-% Custom command for experience with hyperlink without bullet points
-\\newcommand{\\experienceSubheading}[5]{
-  \\vspace{-1pt}
-    \\begin{tabular*}{0.97\\textwidth}{l@{\\extracolsep{\\fill}}r}
-      \\textbf{\\href{#1}{#2}} & #3 \\\\
-      \\textit{#4} & \\textit{#5} \\\\
-    \\end{tabular*}\\vspace{-5pt}
-}
-\\newcommand{\\resumeItem}[2]{
-  \\item\\small{
-    \\textbf{#1}{: #2 \\vspace{-2pt}}
-  }
-}
-\\newcommand{\\resumeItemWithoutTitle}[1]{
-  \\item\\small{
-    {\\vspace{-2pt}}
-  }
-}
-\\newcommand{\\resumeSubheading}[4]{
-  \\vspace{-1pt}\\item
-    \\begin{tabular*}{0.97\\textwidth}{l@{\\extracolsep{\\fill}}r}
-      \\textbf{#1} & #2 \\\\
-      \\textit{#3} & \\textit{#4} \\\\
-    \\end{tabular*}\\vspace{-5pt}
-}
-\\newcommand{\\resumeSubItem}[2]{\\resumeItem{#1}{#2}\\vspace{-3pt}}
-\\renewcommand{\\labelitemii}{$\\circ$}
-\\newcommand{\\resumeSubHeadingListStart}{\\begin{itemize}[leftmargin=*]}
+
+%----------CUSTOM COMMANDS----------
+\\newcommand{\\resumeSubHeadingListStart}{\\begin{itemize}[leftmargin=0.15in, label={}]}
 \\newcommand{\\resumeSubHeadingListEnd}{\\end{itemize}}
+\\newcommand{\\resumeSubheading}[4]{
+  \\item
+    \\textbf{#1} \\hfill {\\small #2} \\\\
+    \\textit{\\small#3} \\hfill {\\small #4}
+}
+\\newcommand{\\resumeItem}[1]{
+  \\item\\small{
+    {#1 \\vspace{-2pt}}
+  }
+}
 \\newcommand{\\resumeItemListStart}{\\begin{itemize}}
-\\newcommand{\\resumeItemListEnd}{\\end{itemize}\\vspace{-5pt}}
-%-----------------------------
-%%%%%%  CV STARTS HERE  %%%%%%
+\\newcommand{\\resumeItemListEnd}{\\end{itemize}}
+
+%----------START DOCUMENT----------
 \\begin{document}
-% In the preamble, add:
-%----------HEADING-----------------
+
+%----------NAME & CONTACT----------
 \\begin{center}
-  \\textbf{{\\LARGE YOUR FULL NAME}} % Replace with your name
+  {\\LARGE \\textbf{Aayush Anand}} \\\\ \\vspace{1pt}
+  \\href{mailto:aayush@example.com}{aayush@example.com} $|$
+  +91-9876543210 $|$
+  \\href{https://github.com/aayushanand}{github.com/aayushanand} $|$
+  \\href{https://linkedin.com/in/aayushanand}{linkedin.com/in/aayushanand}
 \\end{center}
-\\vspace{4pt} % spacing adjustment
-\\begin{center}
-\\small % compact & consistent
-\\href{mailto:your.email@example.com}{your.email@example.com} \\quad $\\vert$ \\quad
-+XX-XXXXXXXXXX \\quad $\\vert$ \\quad % Replace with your phone number
-\\href{https://github.com/yourusername}{github.com/yourusername} \\quad $\\vert$ \\quad % Replace with your GitHub
-\\href{https://www.linkedin.com/in/yourprofile/}{linkedin.com/in/yourprofile} % Replace with your LinkedIn
-\\end{center}
- 
-%-----------Skills-----------------
-	    
-\\section{Skills Summary}
-\\begin{tabular}{ l l }
-\\textbf{Front-end:} & ~HTML5, CSS3, JavaScript (ES6+), React.js, [Other front-end skills] \\\\ % Add your front-end skills
-\\textbf{Back-end:} & ~Node.js, Express.js, [Other back-end skills] \\\\ % Add your back-end skills
-\\textbf{Dev Tools:} & ~Git, GitHub, [Other development tools] \\\\ % Add your development tools
-\\textbf{Soft Skills:} & ~[List your soft skills] \\\\ % Add your soft skills
-\\textbf{Tech Tools:} & ~[List additional technical tools] \\\\ % Add your tech tools
-\\end{tabular}
-%-----------Experience-----------------
-\\section{Experience}
-\\experienceSubheading
-  {https://www.linkedin.com/in/yourprofile/}{Company Name}{} % Replace with company URL and name
-  {Your Position}{Month Year – Month Year | Location} % Replace with your job title, dates, and location
-\\resumeSubHeadingListStart
-\\begin{itemize}
-    \\item [Achievement 1: Describe what you accomplished with specific metrics if possible] % Replace with your first achievement
-    \\item [Achievement 2: Use \\textbf{bold text} to highlight key skills or technologies] % Replace with your second achievement
-    \\item [Achievement 3: Quantify your impact with percentages when possible] % Replace with your third achievement
-    \\item [Achievement 4: Focus on results and outcomes rather than just responsibilities] % Replace with your fourth achievement
-    \\item [Achievement 5: Keep each bullet point concise but informative] % Replace with your fifth achievement
-    
+
+%----------SKILLS----------
+\\section*{Skills Summary}
+\\begin{itemize}[leftmargin=0.15in, label={}]
+  \\item \\textbf{Front-end:} HTML5, CSS3, JavaScript (ES6+), React.js, Tailwind CSS
+  \\item \\textbf{Back-end:} Node.js, Express.js, MongoDB
+  \\item \\textbf{Dev Tools:} Git, GitHub, VS Code, Postman
+  \\item \\textbf{Soft Skills:} Team collaboration, Time management, Problem-solving
+  \\item \\textbf{Tech Tools:} Figma, Netlify, Firebase
 \\end{itemize}
-\\resumeSubHeadingListEnd
-\\vspace{2pt}
-\\resumeSubHeadingListEnd
-%-----------PROJECTS-----------------
-\\vspace{-5pt}
-\\section{Projects}
+
+%----------EXPERIENCE----------
+\\section*{Experience}
 \\resumeSubHeadingListStart
-\\resumeSubItem {\\href{https://github.com/yourusername/project1}{Project Name 1} }\\hfill \\textit{Technology 1, Technology 2, Technology 3} \\\\ % Replace with your project URL, name and technologies used
-\\begin{itemize}
-    \\item [Describe what you built and its purpose] % Replace with project description
-    \\item [Highlight a technical challenge you solved] % Replace with technical challenge
-    \\item [Mention performance improvements or optimizations] % Replace with performance details
-    \\item [Include any recognition or positive feedback received] % Replace with recognition details
-    \\item [Describe a key feature you implemented] % Replace with key feature implementation
-\\end{itemize}}
-\\vspace{2pt}
-\\resumeSubItem{\\href{https://github.com/yourusername/project2}{Project Name 2} }\\hfill \\textit{Technology 1, Technology 2, Technology 3} % Replace with your project URL, name and technologies used
-\\begin{itemize}
-    \\item [Describe what you built and its purpose] % Replace with project description
-    \\item [Mention integrations with external services or APIs] % Replace with integration details
-    \\item [Highlight UI/UX improvements and their impact] % Replace with UI/UX details
-    \\item [Include metrics that demonstrate the project's success] % Replace with success metrics
-\\end{itemize}}
-\\vspace{2pt}
+
+\\resumeSubheading
+  {CodeVerse Technologies}{Jun 2024 – Sep 2024}
+  {Web Development Intern}{Remote}
+  \\resumeItemListStart
+    \\resumeItem{Built responsive UI for the company dashboard using React and Tailwind CSS}
+    \\resumeItem{Integrated RESTful APIs with Axios to fetch and display user data}
+    \\resumeItem{Participated in daily stand-ups and weekly sprint reviews}
+  \\resumeItemListEnd
+
+\\resumeSubheading
+  {Open Source Project - ResuRabbit}{Jan 2025 – Present}
+  {Full Stack Developer}{Personal Project}
+  \\resumeItemListStart
+    \\resumeItem{Built a LaTeX-based resume builder with real-time preview using React and CodeMirror}
+    \\resumeItem{Implemented secure backend with Express.js and sandboxed LaTeX compilation}
+    \\resumeItem{Optimized resume templates for ATS and clean typography}
+  \\resumeItemListEnd
+
 \\resumeSubHeadingListEnd
-\\vspace{-5pt}
-%-----------EDUCATION-----------------
-\\section{Education}
-  \\resumeSubHeadingListStart
-    \\resumeSubheading
-      {University/College Name}{Location} % Replace with your university/college name and location
-      {Degree - Major}{Month Year - Month Year or "present"} % Replace with your degree, major and dates
-    \\resumeSubHeadingListEnd
-    \\resumeSubHeadingListStart
-    \\resumeSubheading
-      {High School Name}{Location} % Replace with your high school name and location
-      {Senior Secondary| Board; Percentage\\%}{Year - Year} % Replace with your senior secondary details
-    \\resumeSubHeadingListEnd
-     \\resumeSubHeadingListStart
-    \\resumeSubheading
-      {School Name}{Location} % Replace with your school name and location
-      {Secondary| Board; Percentage\\%}{Year - Year} % Replace with your secondary education details
-      \\vspace{2pt}
-    \\resumeSubHeadingListEnd
-    
-%-----------Awards& Certificates-----------------
-\\section{Certificates}
-\\begin{description}[font=$\\bullet$]
-\\item {\\href{certificate-url}{Certificate Name – Issuing Organization} % Replace with your certificate URL, name and issuer
-\\vspace{-5pt}
-\\item {\\href{certificate-url}{Certificate Name – Issuing Organization} % Replace with additional certificate details
-\\end{description}
-\\vspace{-5pt}
-\\section{Volunteer Experience}
-  \\begin{description}[font=$\\bullet$]
-\\item {Position in Organization (Date/Duration)} % Replace with volunteer position and organization
-\\vspace{-5pt}
-\\item {Position in Organization (Date/Duration)} % Replace with additional volunteer experience
-\\vspace{-5pt}
-\\item {Position in Organization (Date/Duration)} % Replace with additional volunteer experience
-\\end{description}
-    \\end{document}`;
+
+%----------END DOCUMENT----------
+\\end{document}
+`;
 
   const [code, setCode] = useState(resumeTemplate);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
@@ -228,12 +176,12 @@ const LaTeXEditor = () => {
   const [showDashboard, setShowDashboard] = useState(true);
   const [activeSectionId, setActiveSectionId] = useState<string | null>(null);
   const [useClientSidePdf, setUseClientSidePdf] = useState(false);
-  
+
   // Collaboration state
   const [roomId, setRoomId] = useState<string>("");
   const [isCollaborating, setIsCollaborating] = useState<boolean>(false);
   const [activeUsers, setActiveUsers] = useState<number>(1);
-  
+
   // Socket reference
   const socketRef = useRef<Socket | null>(null);
   const editorRef = useRef<HTMLDivElement>(null);
@@ -314,16 +262,16 @@ const LaTeXEditor = () => {
     if (isCollaborating && roomId) {
       // Initialize Socket.IO connection
       socketRef.current = io(SOCKET_URL);
-      
+
       // Join room
       socketRef.current.emit("join-room", roomId);
-      
+
       // Listen for code updates from other users
       socketRef.current.on("code-update", (data: { code: string }) => {
         // Update the code state
         setCode(data.code);
       });
-      
+
       // Listen for user count updates
       socketRef.current.on("user-count", (count: number) => {
         setActiveUsers(count);
@@ -331,7 +279,7 @@ const LaTeXEditor = () => {
 
       // Notify user
       addNotification("info", `Connected to room: ${roomId}`);
-      
+
       // Clean up on unmount or when disconnecting
       return () => {
         if (socketRef.current) {
@@ -341,6 +289,48 @@ const LaTeXEditor = () => {
     }
   }, [isCollaborating, roomId]);
 
+<<<<<<< Updated upstream
+=======
+  // Function to handle leaving a collaboration room
+  const leaveCollaborationRoom = async () => {
+    if (isCollaborating && roomId) {
+      try {
+        // Call the API to leave the room
+        const response = await fetch("/api/collaboration/leave", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ roomId }),
+        });
+
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.error || "Failed to leave room");
+        }
+
+        // Disconnect socket
+        if (socketRef.current) {
+          socketRef.current.disconnect();
+        }
+
+        // Reset collaboration state
+        setIsCollaborating(false);
+        setActiveUsers(1);
+        addNotification("success", "Successfully left collaboration room");
+      } catch (error) {
+        console.error("Error leaving room:", error);
+        addNotification(
+          "error",
+          `Failed to leave room: ${
+            error instanceof Error ? error.message : "Unknown error"
+          }`
+        );
+      }
+    }
+  };
+
+>>>>>>> Stashed changes
   // Create or join a collaboration room
   const handleCollaboration = () => {
     if (!isCollaborating) {
@@ -348,10 +338,16 @@ const LaTeXEditor = () => {
       const newRoomId = roomId || uuidv4().substring(0, 8);
       setRoomId(newRoomId);
       setIsCollaborating(true);
-      
+
       // Copy room ID to clipboard
-      navigator.clipboard.writeText(newRoomId)
-        .then(() => addNotification("success", "Room ID copied to clipboard. Share it with collaborators!"));
+      navigator.clipboard
+        .writeText(newRoomId)
+        .then(() =>
+          addNotification(
+            "success",
+            "Room ID copied to clipboard. Share it with collaborators!"
+          )
+        );
     } else {
       // Disconnect from room
       if (socketRef.current) {
@@ -383,32 +379,34 @@ const LaTeXEditor = () => {
       const startIndex = code.indexOf(match[0]);
       if (startIndex >= 0) {
         const endIndex = startIndex + match[0].length;
-        
+
         // Use the CodeMirror instance directly from the ref
         if (cmRef.current) {
           // Get line and character positions for selection
           const doc = cmRef.current.view.state.doc;
           const startPos = doc.lineAt(startIndex);
           const endPos = doc.lineAt(endIndex);
-          
+
           // Set the selection in the editor
           cmRef.current.view.dispatch({
             selection: {
               anchor: startIndex,
-              head: endIndex
+              head: endIndex,
             },
-            scrollIntoView: true
+            scrollIntoView: true,
           });
         }
-        
+
         setActiveSectionId(sectionId);
       }
     }
   };
 
   // Create a client-side PDF (fallback when server is not available)
-  const createClientSidePdf = () => {
+  const createClientSidePdf = async () => {
     try {
+      // Dynamically import jsPDF only on the client side
+      const { jsPDF } = await import("jspdf");
       const doc = new jsPDF();
 
       // Enhanced LaTeX to PDF conversion
@@ -465,35 +463,39 @@ const LaTeXEditor = () => {
             doc.text("YOUR FULL NAME", 105, y, { align: "center" });
             doc.setFontSize(10);
             currentFontSize = 10;
-          } 
+          }
           // Handle section headers (they typically start at the beginning of the line with no spaces)
-          else if (!line.startsWith(" ") && !line.startsWith("•") && line.length < 40) {
+          else if (
+            !line.startsWith(" ") &&
+            !line.startsWith("•") &&
+            line.length < 40
+          ) {
             doc.setFontSize(14);
             doc.text(line, 10, y);
             currentFontSize = 14;
-            
+
             // Add underline for section headers
             doc.line(10, y + 1, 200, y + 1);
-          } 
+          }
           // Handle contact info line
           else if (line.includes("@") && line.includes("|")) {
             doc.setFontSize(10);
             doc.text(line, 105, y, { align: "center" });
             currentFontSize = 10;
-          } 
+          }
           // Regular content
           else {
             if (currentFontSize !== 10) {
               doc.setFontSize(10);
               currentFontSize = 10;
             }
-            
+
             // Create a new page when reaching the bottom margin
             if (y > 280) {
               doc.addPage();
               y = 20;
             }
-            
+
             // Indent bullet points
             if (line.startsWith("•")) {
               doc.text(line, 15, y);
@@ -501,7 +503,7 @@ const LaTeXEditor = () => {
               doc.text(line, 10, y);
             }
           }
-          
+
           // Add more space after section headers
           if (currentFontSize > 10) {
             y += 10;
@@ -541,45 +543,403 @@ const LaTeXEditor = () => {
   }, [previewUrl]);
 
   // Function to handle code changes
-  const handleEditorChange = useCallback((value: string) => {
-    setCode(value);
-    
-    // Emit code change to other users if collaborating
-    if (isCollaborating && socketRef.current) {
-      socketRef.current.emit("code-change", { roomId, code: value });
-    }
-  }, [isCollaborating, roomId]);
+  const handleEditorChange = useCallback(
+    (value: string) => {
+      setCode(value);
+
+      // Emit code change to other users if collaborating
+      if (isCollaborating && socketRef.current) {
+        socketRef.current.emit("code-change", { roomId, code: value });
+      }
+    },
+    [isCollaborating, roomId]
+  );
 
   // Function to handle template selection
   const handleSelectTemplate = (templateCode: string) => {
-      setCode(templateCode);
-    
+    setCode(templateCode);
+
     // Send update to collaborators if in a room
     if (isCollaborating && socketRef.current) {
       socketRef.current.emit("code-change", { roomId, code: templateCode });
     }
-    
+
     setShowTemplates(false);
     addNotification("success", "Template loaded successfully!");
   };
 
-  // Function to compile LaTeX using server-side API
-  const compileLatex = async () => {
+  // After the state declarations, add these new states
+  const [numPages, setNumPages] = useState<number>(1);
+  const [currentPage, setCurrentPage] = useState<number>(1);
+  const [scale, setScale] = useState<number>(1.0);
+  const [htmlPreview, setHtmlPreview] = useState<string | null>(null);
+  const [isLatexValid, setIsLatexValid] = useState<boolean>(true);
+  const [compilationMethod, setCompilationMethod] = useState<
+    "server" | "mathjax" | "katex" | "pdf.js"
+  >("server");
+  const [errorLineNumber, setErrorLineNumber] = useState<number | null>(null);
+  const previewRef = useRef<HTMLDivElement>(null);
+
+  // Create a debounced version of the compilation function
+  const debouncedCompile = useMemo(
+    () =>
+      debounce((latexCode: string) => {
+        if (compilationMethod === "katex" || compilationMethod === "mathjax") {
+          compileWithClientSide(latexCode);
+        } else {
+          compileLatex();
+        }
+      }, 1000),
+    [compilationMethod]
+  );
+
+  // Auto-compile when code changes
+  useEffect(() => {
+    if (code.trim()) {
+      debouncedCompile(code);
+    }
+
+    // Validate LaTeX syntax (basic validation)
+    try {
+      const errorMatch =
+        /\\[a-zA-Z]+/.test(code) && !code.includes("\\begin{document}");
+      setIsLatexValid(!errorMatch);
+    } catch (e) {
+      setIsLatexValid(true); // Default to valid if checking fails
+    }
+
+    return () => {
+      debouncedCompile.cancel();
+    };
+  }, [code, debouncedCompile]);
+
+  // Add this new function for client-side compilation
+  const compileWithClientSide = async (latexCode: string) => {
     setIsCompiling(true);
     setError(null);
 
     try {
-      // Try to use the server API first
-      const response = await fetch(`${API_URL}compile-latex`, {
+      if (compilationMethod === "katex") {
+        // Extract the main content from LaTeX (between begin and end document)
+        const contentMatch = latexCode.match(
+          /\\begin{document}([\s\S]*?)\\end{document}/
+        );
+        if (!contentMatch) {
+          throw new Error("Could not find document content");
+        }
+
+        const content = contentMatch[1];
+
+        // Process each section separately to handle LaTeX structure
+        const sections = content
+          .split(/\\section\*?{([^}]+)}/g)
+          .filter(Boolean);
+        let processedHtml = "";
+
+        for (let i = 0; i < sections.length; i += 2) {
+          const sectionTitle = sections[i];
+          const sectionContent = sections[i + 1] || "";
+
+          // Use KaTeX to render mathematical expressions
+          try {
+            processedHtml += `<h2>${sectionTitle}</h2>`;
+
+            // Process LaTeX environments (like itemize)
+            const contentWithLists = sectionContent
+              .replace(
+                /\\begin{itemize}([\s\S]*?)\\end{itemize}/g,
+                "<ul>$1</ul>"
+              )
+              .replace(/\\item\s*([^\\]*)/g, "<li>$1</li>")
+              .replace(/\\textbf{([^}]*)}/g, "<strong>$1</strong>")
+              .replace(/\\textit{([^}]*)}/g, "<em>$1</em>")
+              .replace(/\\href{([^}]*)}{([^}]*)}/g, '<a href="$1">$2</a>')
+              .replace(/\\\\/g, "<br/>");
+
+            processedHtml += contentWithLists;
+          } catch (err) {
+            console.error("KaTeX rendering error:", err);
+            processedHtml += `<div class="text-red-500">Error rendering section: ${sectionTitle}</div>`;
+          }
+        }
+
+        // Final HTML with styling
+        const htmlOutput = `
+          <div class="latex-preview" style="font-family: 'Latin Modern Roman', serif; padding: 2rem; max-width: 800px; margin: 0 auto; line-height: 1.5;">
+            ${processedHtml}
+          </div>
+        `;
+
+        setHtmlPreview(htmlOutput);
+
+        // Generate PDF preview from HTML using html2canvas
+        if (previewRef.current) {
+          setTimeout(async () => {
+            try {
+              const canvas = await html2canvas(previewRef.current!, {
+                scale: 2,
+                useCORS: true,
+                logging: false,
+              });
+
+              // Convert to PDF
+              const imgData = canvas.toDataURL("image/png");
+              const pdf = new jsPDF("p", "mm", "a4");
+              const pdfWidth = pdf.internal.pageSize.getWidth();
+              const pdfHeight = pdf.internal.pageSize.getHeight();
+              const ratio = canvas.width / canvas.height;
+              const imgWidth = pdfWidth;
+              const imgHeight = pdfWidth / ratio;
+
+              pdf.addImage(imgData, "PNG", 0, 0, imgWidth, imgHeight);
+              const pdfDataUri = pdf.output("datauristring");
+              setPreviewUrl(pdfDataUri);
+
+              addNotification("success", "Preview generated with KaTeX");
+            } catch (err) {
+              console.error("PDF generation error:", err);
+              throw err;
+            } finally {
+              setIsCompiling(false);
+            }
+          }, 100);
+        }
+      } else if (compilationMethod === "mathjax") {
+        // Similar to KaTeX but using unified/remark for more complex LaTeX processing
+        try {
+          // Extract content between document tags
+          const contentMatch = latexCode.match(
+            /\\begin{document}([\s\S]*?)\\end{document}/
+          );
+          if (!contentMatch) {
+            throw new Error("Could not find document content");
+          }
+
+          // Process the LaTeX content to convert to HTML
+          const content = contentMatch[1]
+            .replace(/\\section\*?{([^}]+)}/g, "## $1\n\n")
+            .replace(/\\begin{itemize}/g, "")
+            .replace(/\\end{itemize}/g, "")
+            .replace(/\\item\s*/g, "- ")
+            .replace(/\\textbf{([^}]*)}/g, "**$1**")
+            .replace(/\\textit{([^}]*)}/g, "*$1*")
+            .replace(/\\href{([^}]*)}{([^}]*)}/g, "[$2]($1)")
+            .replace(/\\\\/g, "\n");
+
+          // Use unified/remark to process the content with math expressions
+          const result = await unified()
+            .use(remarkParse)
+            .use(remarkMath)
+            .use(remarkRehype)
+            .use(rehypeKatex)
+            .use(rehypeStringify)
+            .process(content);
+
+          // Final styled HTML
+          const htmlOutput = `
+            <div class="latex-preview" style="font-family: 'Latin Modern Roman', serif; padding: 2rem; max-width: 800px; margin: 0 auto; line-height: 1.5;">
+              ${String(result)}
+            </div>
+          `;
+
+          setHtmlPreview(htmlOutput);
+
+          // Generate PDF using the same html2canvas method as above
+          if (previewRef.current) {
+            setTimeout(async () => {
+              try {
+                const canvas = await html2canvas(previewRef.current!, {
+                  scale: 2,
+                  useCORS: true,
+                  logging: false,
+                });
+
+                const imgData = canvas.toDataURL("image/png");
+                const pdf = new jsPDF("p", "mm", "a4");
+                const pdfWidth = pdf.internal.pageSize.getWidth();
+                const ratio = canvas.width / canvas.height;
+                const imgWidth = pdfWidth;
+                const imgHeight = pdfWidth / ratio;
+
+                pdf.addImage(imgData, "PNG", 0, 0, imgWidth, imgHeight);
+                const pdfDataUri = pdf.output("datauristring");
+                setPreviewUrl(pdfDataUri);
+
+                addNotification(
+                  "success",
+                  "Preview generated with remark-math"
+                );
+              } catch (err) {
+                console.error("PDF generation error:", err);
+                throw err;
+              } finally {
+                setIsCompiling(false);
+              }
+            }, 100);
+          }
+        } catch (err) {
+          console.error("Processing error:", err);
+          setError(
+            `Error processing LaTeX: ${
+              err instanceof Error ? err.message : "Unknown error"
+            }`
+          );
+          setIsCompiling(false);
+        }
+      }
+    } catch (err) {
+      console.error("Client-side compilation error:", err);
+      setError(
+        `Client-side compilation failed: ${
+          err instanceof Error ? err.message : "Unknown error"
+        }`
+      );
+      setIsCompiling(false);
+
+      // Fallback to server-side
+      addNotification("info", "Client-side rendering failed. Trying server...");
+      compileLatex();
+    }
+  };
+
+  // Update the compileLatex function to use our new advanced-latex endpoint
+  const compileLatex = async () => {
+    setIsCompiling(true);
+    setError(null);
+
+    // If using client-side methods, use the appropriate function
+    if (compilationMethod === "katex" || compilationMethod === "mathjax") {
+      compileWithClientSide(code);
+      return;
+    }
+
+    try {
+      // First make sure the temp directory exists by making a test request
+      try {
+        await fetch("/api/view-pdf?file=test.pdf").catch(() => {
+          console.log("View PDF endpoint appears to be working");
+        });
+      } catch (err) {
+        console.log("Initial endpoint check error, proceeding anyway:", err);
+      }
+
+      // Use our advanced LaTeX endpoint with better capabilities
+      const response = await fetch("/api/advanced-latex", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ latex: code }),
+        body: JSON.stringify({
+          latex: code,
+          engine: "pdflatex", // Can be extended to allow xelatex, lualatex options
+          options: {
+            timeout: 30000, // 30 seconds timeout
+            passes: 2, // Multiple passes for references
+            highQuality: true, // Better quality output
+            paperSize: "a4", // A4 paper size
+            margins: {
+              // Custom margins
+              top: "1cm",
+              right: "1cm",
+              bottom: "1cm",
+              left: "1cm",
+            },
+          },
+        }),
       });
 
       if (!response.ok) {
-        throw new Error(`Server returned ${response.status}`);
+        const errorData = await response.json().catch(() => null);
+        let errorMessage = `Server returned ${response.status}`;
+
+        if (errorData?.error) {
+          errorMessage = errorData.error;
+
+          // Extract line number from error if available
+          const lineMatch = errorMessage.match(/line (\d+)/i);
+          if (lineMatch && lineMatch[1]) {
+            setErrorLineNumber(parseInt(lineMatch[1], 10));
+
+            // Highlight the error line in editor
+            if (cmRef.current) {
+              const linePos = cmRef.current.view.state.doc.line(
+                parseInt(lineMatch[1], 10)
+              ).from;
+              cmRef.current.view.dispatch({
+                selection: { anchor: linePos, head: linePos },
+                scrollIntoView: true,
+              });
+            }
+          }
+
+          // If pdflatex is not installed, try Overleaf compilation service
+          if (
+            errorData.notInstalled ||
+            errorMessage.includes("not installed")
+          ) {
+            try {
+              addNotification(
+                "info",
+                "LaTeX is not installed locally. Trying Overleaf's compilation service..."
+              );
+
+              // Try the Overleaf compilation service
+              const overleafResponse = await fetch("/api/overleaf-compile", {
+                method: "POST",
+                headers: {
+                  "Content-Type": "application/json",
+                },
+                body: JSON.stringify({
+                  latex: code,
+                  engine: "pdflatex",
+                  options: {
+                    timeout: 30000,
+                    paperSize: "a4",
+                    margins: {
+                      top: "1cm",
+                      right: "1cm",
+                      bottom: "1cm",
+                      left: "1cm",
+                    },
+                  },
+                }),
+              });
+
+              if (!overleafResponse.ok) {
+                throw new Error("Overleaf compilation failed");
+              }
+
+              const overleafData = await overleafResponse.json();
+
+              // Clear PDF cache in service worker
+              if (
+                navigator.serviceWorker &&
+                navigator.serviceWorker.controller
+              ) {
+                navigator.serviceWorker.controller.postMessage({
+                  type: "CLEAR_PDF_CACHE",
+                });
+              }
+
+              setPreviewUrl(overleafData.previewUrl);
+              setUseClientSidePdf(false);
+              setErrorLineNumber(null);
+              addNotification(
+                "success",
+                `LaTeX compiled successfully using ${overleafData.source} service!`
+              );
+              setIsCompiling(false);
+              return;
+            } catch (overleafError) {
+              console.error("Overleaf compilation error:", overleafError);
+              throw new Error(
+                "All server-side compilation methods failed. Using client-side rendering instead."
+              );
+            }
+          }
+        }
+
+        throw new Error(errorMessage);
       }
 
       const data = await response.json();
@@ -588,35 +948,149 @@ const LaTeXEditor = () => {
         throw new Error(data.error);
       }
 
-      // Set preview URL returned from server
-      setPreviewUrl(`${API_URL}preview/${data.pdfFilename}`);
+      // Handle additional source information
+      if (data.source) {
+        addNotification("info", `PDF compiled using ${data.source} service`);
+      }
+
+      // Clear PDF cache in service worker
+      if (navigator.serviceWorker && navigator.serviceWorker.controller) {
+        navigator.serviceWorker.controller.postMessage({
+          type: "CLEAR_PDF_CACHE",
+        });
+      }
+
+      // If using pdf.js for rendering
+      if (compilationMethod === "pdf.js") {
+        // Set preview URL for PDF.js renderer
+        setPreviewUrl(data.previewUrl);
+      } else {
+        // Standard iframe preview
+        setPreviewUrl(data.previewUrl);
+      }
+
       setUseClientSidePdf(false);
+      setErrorLineNumber(null);
       addNotification("success", "LaTeX compiled successfully!");
     } catch (err) {
       console.error("LaTeX compilation error:", err);
+      const errorMsg = err instanceof Error ? err.message : "Unknown error";
+      setError(`${errorMsg}`);
 
-      // If server-side compilation fails, use client-side fallback
-      addNotification(
-        "info",
-        "Server compilation failed. Using client-side rendering instead."
-      );
-      setUseClientSidePdf(true);
-      createClientSidePdf();
+      // Check specifically for "pdflatex not found" error
+      if (
+        errorMsg.includes("pdflatex: not found") ||
+        errorMsg.includes("not installed") ||
+        errorMsg.includes("Command failed")
+      ) {
+        addNotification(
+          "error",
+          "LaTeX compiler (pdflatex) is not installed on the server. Using client-side rendering instead."
+        );
+
+        // Automatically switch to client-side rendering if pdflatex is not available
+        setCompilationMethod("katex");
+        addNotification(
+          "info",
+          "Switched to client-side rendering using KaTeX. For better results, please install LaTeX on your server."
+        );
+
+        // Start client-side compilation immediately
+        compileWithClientSide(code);
+      } else if (
+        errorMsg.includes("timeout") ||
+        errorMsg.includes("ECONNREFUSED") ||
+        errorMsg.includes("404") ||
+        errorMsg.includes("Server returned 404")
+      ) {
+        addNotification(
+          "error",
+          "Server connection failed or API endpoint not found. Using client-side fallback."
+        );
+        // Switch to client-side rendering if server is down or endpoint not found
+        setCompilationMethod("katex");
+        compileWithClientSide(code);
+      } else {
+        addNotification("error", `Compilation error: ${errorMsg}`);
+
+        // Fallback to client-side rendering
+        setUseClientSidePdf(true);
+        createClientSidePdf();
+      }
     } finally {
       setIsCompiling(false);
     }
   };
 
-  // Function to download PDF
+  // Add these utility functions for the enhanced preview component
+  const onDocumentLoadSuccess = ({ numPages }: { numPages: number }) => {
+    setNumPages(numPages);
+  };
+
+  const changePage = (offset: number) => {
+    setCurrentPage((prevPage) => {
+      const newPage = prevPage + offset;
+      return Math.min(Math.max(1, newPage), numPages);
+    });
+  };
+
+  const zoomIn = () => setScale((prevScale) => Math.min(prevScale + 0.2, 2.5));
+  const zoomOut = () => setScale((prevScale) => Math.max(prevScale - 0.2, 0.5));
+
+  // Add the missing copyToClipboard function
+  const copyToClipboard = () => {
+    navigator.clipboard
+      .writeText(code)
+      .then(() => {
+        addNotification("success", "LaTeX code copied to clipboard!");
+      })
+      .catch((err) => {
+        console.error("Failed to copy:", err);
+        addNotification("error", "Failed to copy code to clipboard");
+      });
+  };
+
+  // Replace the existing downloadPdf function with this optimized version
   const downloadPdf = async () => {
     try {
       setIsCompiling(true);
 
-      if (useClientSidePdf) {
-        // Client-side PDF generation
-        const pdfDataUri = createClientSidePdf();
+      // For client-side methods, generate PDF directly
+      if (compilationMethod === "katex" || compilationMethod === "mathjax") {
+        if (previewRef.current) {
+          // Dynamically import required modules
+          const [{ default: html2canvas }, { jsPDF }] = await Promise.all([
+            import("html2canvas"),
+            import("jspdf"),
+          ]);
+
+          const canvas = await html2canvas(previewRef.current, {
+            scale: 2,
+            useCORS: true,
+            logging: false,
+          });
+
+          const pdf = new jsPDF("p", "mm", "a4");
+          const imgData = canvas.toDataURL("image/png");
+          const pdfWidth = pdf.internal.pageSize.getWidth();
+          const ratio = canvas.width / canvas.height;
+          const imgWidth = pdfWidth;
+          const imgHeight = pdfWidth / ratio;
+
+          pdf.addImage(imgData, "PNG", 0, 0, imgWidth, imgHeight);
+
+          pdf.save("resume.pdf");
+          addNotification(
+            "success",
+            "PDF downloaded using client-side rendering"
+          );
+        } else {
+          throw new Error("Preview not available");
+        }
+      } else if (useClientSidePdf) {
+        // Client-side PDF generation using existing function
+        const pdfDataUri = await createClientSidePdf();
         if (pdfDataUri) {
-          // Create a link to download the PDF and click it
           const a = document.createElement("a");
           a.href = pdfDataUri;
           a.download = "resume.pdf";
@@ -626,66 +1100,91 @@ const LaTeXEditor = () => {
           addNotification("success", "PDF downloaded successfully!");
         }
       } else {
-        // Server-side PDF generation
+        // Advanced server-side PDF generation with more options
         try {
-          const response = await fetch(`${API_URL}download-pdf`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ latex: code }),
-      });
+          const response = await fetch(`/api/download-pdf`, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              latex: code,
+              engine: "pdflatex",
+              options: {
+                highQuality: true,
+                paperSize: "a4",
+                margins: {
+                  top: "1cm",
+                  right: "1cm",
+                  bottom: "1cm",
+                  left: "1cm",
+                },
+              },
+            }),
+          });
 
-      if (!response.ok) {
-            throw new Error(`Server returned ${response.status}`);
-      }
+          if (!response.ok) {
+            const errorData = await response.json().catch(() => null);
+            throw new Error(
+              errorData?.error || `Server returned ${response.status}`
+            );
+          }
 
-      // Create a blob from the PDF content
-      const blob = await response.blob();
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = "resume.pdf";
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
-      addNotification("success", "PDF downloaded successfully!");
+          // Handle the downloaded PDF
+          const blob = await response.blob();
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement("a");
+          a.href = url;
+          a.download = "resume.pdf";
+          document.body.appendChild(a);
+          a.click();
+          document.body.removeChild(a);
+          URL.revokeObjectURL(url);
+          addNotification("success", "PDF downloaded successfully!");
         } catch (err) {
           throw err;
         }
       }
     } catch (err) {
       console.error("PDF download error:", err);
-
-      // Fallback to client-side PDF generation
       addNotification(
-        "info",
-        "Server download failed. Using client-side generation instead."
+        "error",
+        `Download failed: ${
+          err instanceof Error ? err.message : "Unknown error"
+        }`
       );
-      setUseClientSidePdf(true);
-      const pdfDataUri = createClientSidePdf();
-      if (pdfDataUri) {
-        const a = document.createElement("a");
-        a.href = pdfDataUri;
-        a.download = "resume.pdf";
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
+
+      // Multiple fallback mechanisms
+      try {
+        addNotification("info", "Trying alternative download method...");
+
+        if (compilationMethod !== "katex" && compilationMethod !== "mathjax") {
+          setCompilationMethod("katex");
+          await compileWithClientSide(code);
+        }
+
+        const pdfDataUri = await createClientSidePdf();
+        if (pdfDataUri) {
+          const a = document.createElement("a");
+          a.href = pdfDataUri;
+          a.download = "resume.pdf";
+          document.body.appendChild(a);
+          a.click();
+          document.body.removeChild(a);
+          addNotification("success", "PDF downloaded using fallback method");
+        } else {
+          throw new Error("Fallback download failed");
+        }
+      } catch (fallbackErr) {
+        console.error("All download methods failed:", fallbackErr);
         addNotification(
-          "success",
-          "PDF downloaded successfully using client-side generation!"
+          "error",
+          "All download methods failed. Please try again later."
         );
       }
     } finally {
       setIsCompiling(false);
     }
-  };
-  
-  // Function to copy LaTeX code to clipboard
-  const copyToClipboard = () => {
-    navigator.clipboard.writeText(code)
-      .then(() => addNotification("success", "LaTeX code copied to clipboard"));
   };
 
   // Loading spinner component
@@ -735,23 +1234,44 @@ const LaTeXEditor = () => {
     setShowDashboard(!showDashboard);
   };
 
+  // Add this directly after the imports to load KaTeX CSS dynamically
+  // This will be called when the component mounts
+  const loadKaTeXCSS = () => {
+    if (typeof window !== "undefined") {
+      const link = document.createElement("link");
+      link.rel = "stylesheet";
+      link.href =
+        "https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css";
+      link.integrity =
+        "sha384-n8MVd4RsNIU0tAv4ct0nTaAbDJwPJzDEaqSD1odI+WdtXRGWt2kTvGFasHpSy3SV";
+      link.crossOrigin = "anonymous";
+      document.head.appendChild(link);
+    }
+  };
+
+  // In the LaTeXEditor component, add this useEffect to load KaTeX CSS
+  // Inside the component, right after the state declarations, add:
+  useEffect(() => {
+    loadKaTeXCSS();
+  }, []);
+
   return (
     <div className="bg-gradient-to-br from-purple-100 via-[#C599E599]/40 to-purple-100 h-screen flex flex-col overflow-hidden">
       <div className="container mx-auto px-4 py-3 flex flex-col h-full overflow-hidden">
         <div className="flex justify-between items-center mb-2">
           <h1 className="text-2xl font-bold text-center bg-clip-text text-transparent bg-gradient-to-r from-purple-600 to-indigo-600">
-        LaTeX Resume Editor for ResuRabbit
-      </h1>
-          
+            LaTeX Resume Editor for ResuRabbit
+          </h1>
+
           {/* Collaboration controls */}
           <div className="flex items-center gap-3">
             {isCollaborating && (
               <div className="flex items-center text-purple-700 bg-purple-100 px-3 py-1 rounded-full text-sm border border-purple-200 shadow-sm mr-1">
                 <FaUsers className="mr-2" />
-                {activeUsers} active user{activeUsers !== 1 ? 's' : ''}
+                {activeUsers} active user{activeUsers !== 1 ? "s" : ""}
               </div>
             )}
-            
+
             <Button
               color="purple"
               size="sm"
@@ -761,7 +1281,7 @@ const LaTeXEditor = () => {
             >
               {isCollaborating ? "Leave Room" : "Collaborate"}
             </Button>
-            
+
             {!isCollaborating && (
               <Button
                 color="lime"
@@ -775,12 +1295,12 @@ const LaTeXEditor = () => {
             )}
           </div>
         </div>
-        
-      <NotificationSystem />
 
-      {showTemplates ? (
+        <NotificationSystem />
+
+        {showTemplates ? (
           <div className="flex-1 overflow-auto">
-        <ResumeTemplates onSelectTemplate={handleSelectTemplate} />
+            <ResumeTemplates onSelectTemplate={handleSelectTemplate} />
           </div>
         ) : (
           <div className="flex flex-1 relative overflow-hidden rounded-xl shadow-lg bg-white/50 backdrop-blur-sm">
@@ -825,7 +1345,7 @@ const LaTeXEditor = () => {
             {/* Main content grid */}
             <div className="flex-1 flex flex-col overflow-hidden">
               <div className="flex-1 grid grid-cols-1 lg:grid-cols-2 gap-2 p-2 overflow-hidden">
-          {/* Editor Section - Left */}
+                {/* Editor Section - Left */}
                 <div className="flex flex-col bg-white rounded-xl shadow-sm overflow-hidden border border-gray-100 h-full">
                   <div className="flex justify-between items-center p-2 border-b bg-gray-50">
                     <h2 className="text-base font-semibold text-gray-800 flex items-center">
@@ -833,7 +1353,7 @@ const LaTeXEditor = () => {
                       Edit LaTeX
                     </h2>
                     <div className="flex gap-2">
-              <button
+                      <button
                         onClick={copyToClipboard}
                         className="flex items-center justify-center p-2 rounded-full hover:bg-gray-100 transition-colors text-gray-700"
                         title="Copy LaTeX Code"
@@ -843,7 +1363,7 @@ const LaTeXEditor = () => {
                       <Button
                         color="purple"
                         size="sm"
-                onClick={() => setShowTemplates(true)}
+                        onClick={() => setShowTemplates(true)}
                         iconName="resume"
                         className="shadow-sm mx-0"
                       >
@@ -851,10 +1371,7 @@ const LaTeXEditor = () => {
                       </Button>
                     </div>
                   </div>
-                  <div 
-                    className="flex-1 overflow-hidden" 
-                    ref={editorRef}
-                  >
+                  <div className="flex-1 overflow-hidden" ref={editorRef}>
                     <CodeMirror
                       value={code}
                       height="100%"
@@ -870,68 +1387,192 @@ const LaTeXEditor = () => {
                       }}
                       extensions={[StreamLanguage.define(stex)]}
                       ref={cmRef as any}
-                      style={{ height: '100%', fontSize: '14px' }}
+                      style={{ height: "100%", fontSize: "14px" }}
                     />
-            </div>
-          </div>
+                  </div>
+                </div>
 
-          {/* Preview Section - Right */}
+                {/* Preview Section - Right */}
                 <div className="flex flex-col bg-white rounded-xl shadow-sm overflow-hidden border border-gray-100 h-full">
                   <div className="flex justify-between items-center p-2 border-b bg-gray-50">
                     <h2 className="text-base font-semibold text-gray-800 flex items-center">
                       <FaFileAlt className="mr-2 text-purple-600" />
                       PDF Preview
                     </h2>
+                    <div className="flex items-center gap-2">
+                      <select
+                        className="text-sm border border-gray-200 rounded px-2 py-1 bg-white"
+                        value={compilationMethod}
+                        onChange={(e) =>
+                          setCompilationMethod(e.target.value as any)
+                        }
+                      >
+                        <option value="server">Server (pdfLaTeX)</option>
+                        <option value="katex">KaTeX (Client)</option>
+                        <option value="mathjax">MathJax/Remark (Client)</option>
+                        <option value="pdf.js">PDF.js Renderer</option>
+                      </select>
+
+                      {compilationMethod === "pdf.js" && previewUrl && (
+                        <div className="flex items-center gap-1">
+                          <button
+                            onClick={() => changePage(-1)}
+                            disabled={currentPage <= 1}
+                            className="p-1 text-gray-600 hover:bg-gray-100 rounded disabled:text-gray-300"
+                          >
+                            &lt;
+                          </button>
+                          <span className="text-xs text-gray-600">
+                            {currentPage} / {numPages}
+                          </span>
+                          <button
+                            onClick={() => changePage(1)}
+                            disabled={currentPage >= numPages}
+                            className="p-1 text-gray-600 hover:bg-gray-100 rounded disabled:text-gray-300"
+                          >
+                            &gt;
+                          </button>
+                          <button
+                            onClick={zoomOut}
+                            className="p-1 text-gray-600 hover:bg-gray-100 rounded"
+                          >
+                            -
+                          </button>
+                          <span className="text-xs text-gray-600">
+                            {Math.round(scale * 100)}%
+                          </span>
+                          <button
+                            onClick={zoomIn}
+                            className="p-1 text-gray-600 hover:bg-gray-100 rounded"
+                          >
+                            +
+                          </button>
+                        </div>
+                      )}
+                    </div>
                   </div>
-                  <div className="flex-1 bg-white overflow-hidden">
-              {isCompiling ? (
-                <div className="flex items-center justify-center h-full w-full">
-                  <LoadingSpinner />
+                  <div className="flex-1 bg-white overflow-auto">
+                    {isCompiling ? (
+                      <div className="flex items-center justify-center h-full w-full">
+                        <LoadingSpinner />
                         <span className="ml-4 text-gray-600 font-medium">
                           Compiling LaTeX...
                         </span>
-                </div>
-              ) : error ? (
+                      </div>
+                    ) : error ? (
                       <div className="bg-red-50 text-red-700 p-4 h-full overflow-auto">
-                  <p className="font-bold mb-2">Compilation Error:</p>
-                        <pre className="whitespace-pre-wrap text-sm font-mono bg-red-100/50 p-3 rounded">{error}</pre>
+                        <p className="font-bold mb-2">Compilation Error:</p>
+                        <pre className="whitespace-pre-wrap text-sm font-mono bg-red-100/50 p-3 rounded">
+                          {error}
+                          {errorLineNumber && (
+                            <div className="mt-2 text-sm">
+                              Error at line:{" "}
+                              <span className="font-bold">
+                                {errorLineNumber}
+                              </span>
+                              <button
+                                className="ml-2 text-blue-600 underline"
+                                onClick={() => {
+                                  if (cmRef.current && errorLineNumber) {
+                                    const linePos =
+                                      cmRef.current.view.state.doc.line(
+                                        errorLineNumber
+                                      ).from;
+                                    cmRef.current.view.dispatch({
+                                      selection: {
+                                        anchor: linePos,
+                                        head: linePos,
+                                      },
+                                      scrollIntoView: true,
+                                    });
+                                  }
+                                }}
+                              >
+                                Go to line
+                              </button>
+                            </div>
+                          )}
+                        </pre>
+                      </div>
+                    ) : (
+                      <>
+                        {/* HTML Preview for client-side rendering methods */}
+                        {(compilationMethod === "katex" ||
+                          compilationMethod === "mathjax") &&
+                          htmlPreview && (
+                            <div
+                              ref={previewRef}
+                              className="w-full h-full p-4 overflow-auto bg-white shadow-inner"
+                              dangerouslySetInnerHTML={{ __html: htmlPreview }}
+                            />
+                          )}
+
+                        {/* PDF.js Renderer */}
+                        {compilationMethod === "pdf.js" && previewUrl && (
+                          <div className="flex justify-center p-2 bg-gray-100 h-full">
+                            <PDFViewer
+                              file={previewUrl}
+                              onDocumentLoadSuccess={onDocumentLoadSuccess}
+                              currentPage={currentPage}
+                              scale={scale}
+                              numPages={numPages}
+                              changePage={changePage}
+                              zoomIn={zoomIn}
+                              zoomOut={zoomOut}
+                            />
+                          </div>
+                        )}
+
+                        {/* Standard iframe preview for server-side rendering */}
+                        {compilationMethod === "server" && previewUrl && (
+                          <iframe
+                            src={previewUrl}
+                            className="w-full h-full"
+                            title="PDF Preview"
+                          />
+                        )}
+
+                        {/* Empty state */}
+                        {!previewUrl && !htmlPreview && (
+                          <div className="flex flex-col items-center justify-center h-full text-gray-500">
+                            <FaFileAlt className="w-12 h-12 mb-4 text-gray-400 opacity-50" />
+                            <p className="text-center font-medium">
+                              Click "Compile" to preview
+                            </p>
+                            <p className="text-sm text-gray-400 mt-1">
+                              Your resume will appear here
+                            </p>
+                          </div>
+                        )}
+                      </>
+                    )}
+                  </div>
                 </div>
-              ) : previewUrl ? (
-                <iframe
-                  src={previewUrl}
-                  className="w-full h-full"
-                  title="PDF Preview"
-                />
-              ) : (
-                <div className="flex flex-col items-center justify-center h-full text-gray-500">
-                        <FaFileAlt className="w-12 h-12 mb-4 text-gray-400 opacity-50" />
-                        <p className="text-center font-medium">Click "Compile" to preview</p>
-                        <p className="text-sm text-gray-400 mt-1">Your resume will appear here</p>
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
+              </div>
 
               {/* Action buttons properly aligned below the grid */}
               <div className="flex justify-center items-center py-4 px-4 gap-6 border-t border-gray-200 bg-white/70 rounded-b-xl mt-1">
                 <Button
                   color="purple"
                   size="sm"
-          onClick={compileLatex}
-          disabled={isCompiling}
+                  onClick={compileLatex}
+                  disabled={isCompiling}
                   iconName="view"
-                  className={`min-w-[150px] px-4 ${isCompiling ? "opacity-70 cursor-not-allowed" : ""}`}
+                  className={`min-w-[150px] px-4 ${
+                    isCompiling ? "opacity-70 cursor-not-allowed" : ""
+                  }`}
                 >
                   {isCompiling ? "Compiling..." : "Compile LaTeX"}
                 </Button>
                 <Button
                   color="lime"
                   size="sm"
-          onClick={downloadPdf}
-          disabled={isCompiling}
+                  onClick={downloadPdf}
+                  disabled={isCompiling}
                   icon={<FaDownload />}
-                  className={`min-w-[150px] px-4 ${isCompiling ? "opacity-70 cursor-not-allowed" : ""}`}
+                  className={`min-w-[150px] px-4 ${
+                    isCompiling ? "opacity-70 cursor-not-allowed" : ""
+                  }`}
                 >
                   {isCompiling ? "Processing..." : "Download PDF"}
                 </Button>

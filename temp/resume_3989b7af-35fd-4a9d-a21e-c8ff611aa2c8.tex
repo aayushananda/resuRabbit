@@ -1,0 +1,85 @@
+\documentclass[a4paper,10pt,a4]{article}
+\usepackage[top=1cm,right=1cm,bottom=1cm,left=1cm]{geometry}
+\usepackage[empty]{fullpage}
+\usepackage{titlesec}
+\usepackage{marvosym}
+\usepackage[usenames,dvipsnames]{color}
+\usepackage{enumitem}
+\usepackage[hidelinks]{hyperref}
+\usepackage{fancyhdr}
+
+%----------FONT----------
+\usepackage[T1]{fontenc}
+\usepackage{tgpagella}
+
+%----------PAGE SETUP----------
+\pagestyle{fancy}
+\fancyhf{} % clear all header and footer fields
+\fancyfoot{}
+\renewcommand{\headrulewidth}{0pt}
+\renewcommand{\footrulewidth}{0pt}
+
+%----------CUSTOM COMMANDS----------
+\newcommand{\resumeSubHeadingListStart}{\begin{itemize}[leftmargin=0.15in, label={}]}
+\newcommand{\resumeSubHeadingListEnd}{\end{itemize}}
+\newcommand{\resumeSubheading}[4]{
+  \item
+    \textbf{#1} \hfill {\small #2} \\
+    \textit{\small#3} \hfill {\small #4}
+}
+\newcommand{\resumeItem}[1]{
+  \item\small{
+    {#1 \vspace{-2pt}}
+  }
+}
+\newcommand{\resumeItemListStart}{\begin{itemize}}
+\newcommand{\resumeItemListEnd}{\end{itemize}}
+
+%----------START DOCUMENT----------
+\begin{document}
+
+%----------NAME & CONTACT----------
+\begin{center}
+  {\LARGE \textbf{Aayush Anand}} \\ \vspace{1pt}
+  \href{mailto:aayush@example.com}{aayush@example.com} $|$
+  +91-9876543210 $|$
+  \href{https://github.com/aayushanand}{github.com/aayushanand} $|$
+  \href{https://linkedin.com/in/aayushanand}{linkedin.com/in/aayushanand}
+\end{center}
+
+%----------SKILLS----------
+\section*{Skills Summary}
+\begin{itemize}[leftmargin=0.15in, label={}]
+  \item \textbf{Front-end:} HTML5, CSS3, JavaScript (ES6+), React.js, Tailwind CSS
+  \item \textbf{Back-end:} Node.js, Express.js, MongoDB
+  \item \textbf{Dev Tools:} Git, GitHub, VS Code, Postman
+  \item \textbf{Soft Skills:} Team collaboration, Time management, Problem-solving
+  \item \textbf{Tech Tools:} Figma, Netlify, Firebase
+\end{itemize}
+
+%----------EXPERIENCE----------
+\section*{Experience}
+\resumeSubHeadingListStart
+
+\resumeSubheading
+  {CodeVerse Technologies}{Jun 2024 – Sep 2024}
+  {Web Development Intern}{Remote}
+  \resumeItemListStart
+    \resumeItem{Built responsive UI for the company dashboard using React and Tailwind CSS}
+    \resumeItem{Integrated RESTful APIs with Axios to fetch and display user data}
+    \resumeItem{Participated in daily stand-ups and weekly sprint reviews}
+  \resumeItemListEnd
+
+\resumeSubheading
+  {Open Source Project - ResuRabbit}{Jan 2025 – Present}
+  {Full Stack Developer}{Personal Project}
+  \resumeItemListStart
+    \resumeItem{Built a LaTeX-based resume builder with real-time preview using React and CodeMirror}
+    \resumeItem{Implemented secure backend with Express.js and sandboxed LaTeX compilation}
+    \resumeItem{Optimized resume templates for ATS and clean typography}
+  \resumeItemListEnd
+
+\resumeSubHeadingListEnd
+
+%----------END DOCUMENT----------
+\end{document}
